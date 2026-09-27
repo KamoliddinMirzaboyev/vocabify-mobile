@@ -15,7 +15,7 @@ void main() {
 
       final next = SrsAlgorithm.scheduleNext(initial, Rating.again);
       expect(next.repetitions, 0);
-      expect(next.intervalDays, 1);
+      expect(next.intervalDays, 0);
       expect(next.easeFactor, lessThan(2.5));
     });
 
@@ -32,7 +32,7 @@ void main() {
       expect(next.easeFactor, 2.5);
     });
 
-    test('Second successful review gives 6 days interval', () {
+    test('Second successful review gives 4 days interval', () {
       final initial = SrsState(
         easeFactor: 2.5,
         intervalDays: 1,
@@ -41,19 +41,19 @@ void main() {
 
       final next = SrsAlgorithm.scheduleNext(initial, Rating.good);
       expect(next.repetitions, 2);
-      expect(next.intervalDays, 6);
+      expect(next.intervalDays, 4);
     });
 
     test('Third successful review multiplies interval by easeFactor', () {
       final initial = SrsState(
         easeFactor: 2.5,
-        intervalDays: 6,
+        intervalDays: 4,
         repetitions: 2,
       );
 
       final next = SrsAlgorithm.scheduleNext(initial, Rating.good);
       expect(next.repetitions, 3);
-      expect(next.intervalDays, (6 * 2.5).round()); // 15
+      expect(next.intervalDays, (4 * 2.5).round()); // 10
     });
 
     test('Ease factor does not drop below 1.3', () {

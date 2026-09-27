@@ -53,6 +53,7 @@ class DeckModel {
       'description': description,
       'color': color,
       'icon': icon,
+      'card_count': cardCount,
       if (createdAt != null) 'created_at': createdAt!.toIso8601String(),
       if (updatedAt != null) 'updated_at': updatedAt!.toIso8601String(),
     };
