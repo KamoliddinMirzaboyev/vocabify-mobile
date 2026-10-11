@@ -128,6 +128,7 @@ class _AuthScreenState extends State<AuthScreen>
                   Image.asset(
                     'assets/images/hero-study.png',
                     height: 120,
+                    cacheWidth: 384,
                     errorBuilder: (context, error, stackTrace) => const Icon(
                       Icons.menu_book_rounded,
                       size: 80,

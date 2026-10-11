@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -80,12 +82,15 @@ class _SplashScreenState extends State<SplashScreen>
 
       final user = auth.user;
       if (user != null) {
-        // Warm up caches in memory without blocking past 1.5s
-        await Future.wait([
-          decksProv.loadDecks(user.id),
-          cardsProv.loadAllCards(user.id),
-          statsProv.loadStats(user.id),
-        ]).timeout(const Duration(milliseconds: 1500), onTimeout: () => []);
+        // Start cache hydration and network refresh while the splash animation
+        // is still running. Home renders from cache without waiting on network.
+        unawaited(
+          Future.wait([
+            decksProv.loadDecks(user.id),
+            cardsProv.loadAllCards(user.id),
+            statsProv.loadStats(user.id),
+          ]),
+        );
       }
     } catch (e) {
       debugPrint('Boot sequence warmup notice: $e');
@@ -171,9 +176,11 @@ class _SplashScreenState extends State<SplashScreen>
                     child: Image.asset(
                       'assets/images/vocabifylogo.png',
                       fit: BoxFit.contain,
+                      cacheWidth: 384,
                       errorBuilder: (context, error, stackTrace) => Image.asset(
                         'assets/images/app_icon.png',
                         fit: BoxFit.contain,
+                        cacheWidth: 384,
                         errorBuilder: (context, error, stackTrace) =>
                             const Icon(
                               Icons.menu_book_rounded,

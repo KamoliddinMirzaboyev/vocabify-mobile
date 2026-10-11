@@ -9,10 +9,12 @@ import '../core/services/cache_service.dart';
 import '../models/profile_model.dart';
 
 class AuthProvider extends ChangeNotifier {
+  final Future<void> _coreInitialization;
   User? _user;
   Session? _session;
   ProfileModel? _profile;
   bool _isLoading = true;
+  bool _isDisposed = false;
   StreamSubscription<AuthState>? _authSubscription;
   int _authGeneration = 0;
 
@@ -22,11 +24,23 @@ class AuthProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isAuthenticated => _user != null;
 
-  AuthProvider() {
-    _init();
+  AuthProvider({Future<void>? coreInitialization})
+    : _coreInitialization = coreInitialization ?? Future<void>.value() {
+    unawaited(_init());
   }
 
-  void _init() async {
+  Future<void> _init() async {
+    try {
+      await _coreInitialization;
+    } catch (error) {
+      debugPrint('Auth initialization unavailable: $error');
+      if (!_isDisposed) {
+        _isLoading = false;
+        notifyListeners();
+      }
+      return;
+    }
+    if (_isDisposed) return;
     _session = SupabaseService.currentSession;
     _user = SupabaseService.currentUser;
     CacheService.instance.activateUser(_user?.id);
@@ -232,6 +246,7 @@ class AuthProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    _isDisposed = true;
     _authSubscription?.cancel();
     super.dispose();
   }
