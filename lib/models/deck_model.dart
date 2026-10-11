@@ -40,8 +40,12 @@ class DeckModel {
       color: json['color'] as String? ?? 'violet',
       icon: json['icon'] as String? ?? '📚',
       cardCount: count,
-      createdAt: json['created_at'] != null ? DateTime.tryParse(json['created_at']) : null,
-      updatedAt: json['updated_at'] != null ? DateTime.tryParse(json['updated_at']) : null,
+      createdAt: json['created_at'] != null
+          ? DateTime.tryParse(json['created_at'])
+          : null,
+      updatedAt: json['updated_at'] != null
+          ? DateTime.tryParse(json['updated_at'])
+          : null,
     );
   }
 
@@ -54,6 +58,19 @@ class DeckModel {
       'color': color,
       'icon': icon,
       'card_count': cardCount,
+      if (createdAt != null) 'created_at': createdAt!.toIso8601String(),
+      if (updatedAt != null) 'updated_at': updatedAt!.toIso8601String(),
+    };
+  }
+
+  Map<String, dynamic> toDbMap() {
+    return {
+      'id': id,
+      'user_id': userId,
+      'name': name,
+      'description': description,
+      'color': color,
+      'icon': icon,
       if (createdAt != null) 'created_at': createdAt!.toIso8601String(),
       if (updatedAt != null) 'updated_at': updatedAt!.toIso8601String(),
     };

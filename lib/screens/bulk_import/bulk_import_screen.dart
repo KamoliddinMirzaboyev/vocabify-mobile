@@ -1,15 +1,19 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
+
 import '../../core/constants/app_colors.dart';
 import '../../core/services/supabase_service.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/decks_provider.dart';
 import '../../providers/cards_provider.dart';
+import '../decks/card_form_screen.dart';
 
 class BulkImportScreen extends StatefulWidget {
   final String? initialDeckId;
@@ -21,6 +25,7 @@ class BulkImportScreen extends StatefulWidget {
 
 class _BulkImportScreenState extends State<BulkImportScreen> {
   final TextEditingController _jsonController = TextEditingController();
+
   String? _selectedDeckId;
   bool _isImporting = false;
   bool _isExporting = false;
@@ -28,25 +33,145 @@ class _BulkImportScreenState extends State<BulkImportScreen> {
   static const String _sampleJson = '''[
   {
     "word": "serendipity",
-    "pronunciation": "/ˌser.ənˈdɪp.ə.ti/",
     "translation": "tasodifiy yaxshi narsa topish",
-    "definition": "The occurrence of fortunate events by chance.",
-    "synonyms": ["luck", "fortune", "coincidence"],
-    "antonyms": ["misfortune"],
     "example": "Meeting her was pure serendipity."
-  },
-  {
-    "word": "ubiquitous",
-    "translation": "hamma joyda uchraydigan",
-    "example": "Smartphones have become ubiquitous."
   }
 ]''';
+
+  static const String _aiPromptTemplate = '''Quyidagi so'zlarni berilgan JSON formatiga o'tkazib ber. Har bir so'z uchun inglizcha so'z (word), o'zbekcha tarjimasi (translation) va inglizcha misol gap (example) bo'lsin. Faqat toza JSON formatida javob qaytar (boshqa hech qanday izoh yoki belgilarsiz):
+
+[
+  {
+    "word": "serendipity",
+    "translation": "tasodifiy yaxshi narsa topish",
+    "example": "Meeting her was pure serendipity."
+  }
+]
+
+So'zlar ro'yxati:
+''';
+
+  void _showPromptDialog(BuildContext context, bool isDark) {
+    Clipboard.setData(const ClipboardData(text: _aiPromptTemplate));
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2563EB).withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(
+                Icons.auto_awesome_rounded,
+                color: Color(0xFF2563EB),
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'AI uchun prompt',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : const Color(0xFF0F172A),
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Prompt nusxalandi! 📋\nUni ChatGPT, Claude yoki Gemini\'ga yuborib, so\'zlaringizni tayyor JSON holida olishingiz mumkin:',
+              style: TextStyle(
+                fontSize: 13,
+                height: 1.4,
+                color: isDark ? Colors.white70 : const Color(0xFF64748B),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? const Color(0xFF0F172A)
+                    : const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isDark
+                      ? const Color(0xFF334155)
+                      : const Color(0xFFE2E8F0),
+                ),
+              ),
+              child: SelectableText(
+                _aiPromptTemplate,
+                style: TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 11.5,
+                  height: 1.35,
+                  color: isDark
+                      ? const Color(0xFFCBD5E1)
+                      : const Color(0xFF334155),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              'Yopish',
+              style: TextStyle(
+                color: isDark ? Colors.white60 : const Color(0xFF64748B),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Clipboard.setData(const ClipboardData(text: _aiPromptTemplate));
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Prompt buferga nusxalandi! 📋'),
+                  behavior: SnackBarBehavior.floating,
+                  backgroundColor: Color(0xFF1E293B),
+                ),
+              );
+            },
+            icon: const Icon(Icons.copy_rounded, size: 16),
+            label: const Text('Qayta nusxalash'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1E293B),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   void initState() {
     super.initState();
     _selectedDeckId = widget.initialDeckId;
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       final decks = context.read<DecksProvider>().decks;
       if (_selectedDeckId == null && decks.isNotEmpty) {
         setState(() => _selectedDeckId = decks.first.id);
@@ -60,19 +185,41 @@ class _BulkImportScreenState extends State<BulkImportScreen> {
     super.dispose();
   }
 
-  List<Map<String, dynamic>> _parseJson(String text) {
-    if (text.trim().isEmpty) return [];
-    try {
-      final raw = jsonDecode(text);
-      if (raw is List) {
-        return raw.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
-      } else if (raw is Map) {
-        return [Map<String, dynamic>.from(raw)];
+  List<Map<String, dynamic>> _cleanAndParseJson(String rawText) {
+    var text = rawText.trim();
+    if (text.isEmpty) return [];
+
+    // Strip markdown fences
+    text = text.replaceAll(RegExp(r'```json\s*', caseSensitive: false), '');
+    text = text.replaceAll(RegExp(r'```\s*'), '');
+
+    final startBracket = text.indexOf('[');
+    final endBracket = text.lastIndexOf(']');
+
+    if (startBracket != -1 && endBracket != -1 && endBracket > startBracket) {
+      text = text.substring(startBracket, endBracket + 1);
+    } else {
+      final startBrace = text.indexOf('{');
+      final endBrace = text.lastIndexOf('}');
+      if (startBrace != -1 && endBrace != -1 && endBrace > startBrace) {
+        text = text.substring(startBrace, endBrace + 1);
       }
-      return [];
-    } catch (_) {
-      return [];
     }
+
+    try {
+      final parsed = jsonDecode(text);
+      if (parsed is List) {
+        return parsed
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+      } else if (parsed is Map) {
+        return [Map<String, dynamic>.from(parsed)];
+      }
+    } catch (e) {
+      debugPrint('JSON parse error: $e');
+    }
+    return [];
   }
 
   Future<void> _pickFile() async {
@@ -85,8 +232,10 @@ class _BulkImportScreenState extends State<BulkImportScreen> {
       if (files.isNotEmpty && files.first.path != null) {
         final file = File(files.first.path!);
         final content = await file.readAsString();
-        _jsonController.text = content;
-        setState(() {});
+        if (!mounted) return;
+        setState(() {
+          _jsonController.text = content;
+        });
       }
     } catch (e) {
       debugPrint('File pick error: $e');
@@ -97,21 +246,33 @@ class _BulkImportScreenState extends State<BulkImportScreen> {
     final userId = context.read<AuthProvider>().user?.id;
     if (userId == null || _selectedDeckId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('To\'plamni tanlang')),
+        const SnackBar(
+          content: Text('Iltimos, avval to\'plamni tanlang'),
+          backgroundColor: AppColors.destructive,
+          behavior: SnackBarBehavior.floating,
+        ),
       );
       return;
     }
 
-    final items = _parseJson(_jsonController.text);
+    final items = _cleanAndParseJson(_jsonController.text);
     final validItems = items
-        .where((e) =>
-            e['word']?.toString().trim().isNotEmpty == true &&
-            e['translation']?.toString().trim().isNotEmpty == true)
+        .where(
+          (e) =>
+              e['word']?.toString().trim().isNotEmpty == true &&
+              e['translation']?.toString().trim().isNotEmpty == true,
+        )
         .toList();
 
     if (validItems.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Hech qanday yaroqli so\'z topilmadi')),
+        const SnackBar(
+          content: Text(
+            'Hech qanday yaroqli so\'z topilmadi. JSON ni tekshiring.',
+          ),
+          backgroundColor: AppColors.destructive,
+          behavior: SnackBarBehavior.floating,
+        ),
       );
       return;
     }
@@ -133,8 +294,11 @@ class _BulkImportScreenState extends State<BulkImportScreen> {
         setState(() => _isImporting = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('$count ta so\'z qo\'shildi 🎉'),
+            content: Text(
+              '$count ta so\'z to\'plamga muvaffaqiyatli qo\'shildi! 🎉',
+            ),
             backgroundColor: AppColors.success,
+            behavior: SnackBarBehavior.floating,
           ),
         );
         Navigator.pop(context);
@@ -144,8 +308,9 @@ class _BulkImportScreenState extends State<BulkImportScreen> {
         setState(() => _isImporting = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Xatolik: $e'),
+            content: Text('Import qilishda xatolik: $e'),
             backgroundColor: AppColors.destructive,
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }
@@ -160,7 +325,7 @@ class _BulkImportScreenState extends State<BulkImportScreen> {
     try {
       var query = SupabaseService.client
           .from('cards')
-          .select('word, pronunciation, translation, definition, synonyms, antonyms, example_sentence')
+          .select('word, translation, example_sentence')
           .eq('user_id', userId);
 
       if (_selectedDeckId != null && _selectedDeckId!.isNotEmpty) {
@@ -168,27 +333,34 @@ class _BulkImportScreenState extends State<BulkImportScreen> {
       }
 
       final res = await query;
-      final list = (res as List).map((c) => {
-            'word': c['word'],
-            if (c['pronunciation'] != null) 'pronunciation': c['pronunciation'],
-            'translation': c['translation'],
-            if (c['definition'] != null) 'definition': c['definition'],
-            if (c['synonyms'] != null) 'synonyms': c['synonyms'],
-            if (c['antonyms'] != null) 'antonyms': c['antonyms'],
-            if (c['example_sentence'] != null) 'example': c['example_sentence'],
-          }).toList();
+      final list = (res as List)
+          .map(
+            (c) => {
+              'word': c['word'],
+              'translation': c['translation'],
+              if (c['example_sentence'] != null)
+                'example': c['example_sentence'],
+            },
+          )
+          .toList();
 
       final jsonStr = const JsonEncoder.withIndent('  ').convert(list);
       final tempDir = await getTemporaryDirectory();
-      final file = File('${tempDir.path}/vocabify_export_${DateTime.now().millisecondsSinceEpoch}.json');
+      final file = File(
+        '${tempDir.path}/vocabify_export_${DateTime.now().millisecondsSinceEpoch}.json',
+      );
       await file.writeAsString(jsonStr);
 
       if (mounted) {
         setState(() => _isExporting = false);
+        final box = context.findRenderObject() as RenderBox?;
+        final origin =
+            box != null ? (box.localToGlobal(Offset.zero) & box.size) : null;
         // ignore: deprecated_member_use
         await Share.shareXFiles(
           [XFile(file.path)],
           subject: 'Vocabify export',
+          sharePositionOrigin: origin,
         );
       }
     } catch (e) {
@@ -198,6 +370,7 @@ class _BulkImportScreenState extends State<BulkImportScreen> {
           SnackBar(
             content: Text('Eksportda xatolik: $e'),
             backgroundColor: AppColors.destructive,
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }
@@ -208,48 +381,58 @@ class _BulkImportScreenState extends State<BulkImportScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final decks = context.watch<DecksProvider>().decks;
-    final parsedItems = _parseJson(_jsonController.text);
-    final isValid = parsedItems.isNotEmpty;
+    final parsedItems = _cleanAndParseJson(_jsonController.text);
+    final validItems = parsedItems
+        .where(
+          (e) =>
+              e['word']?.toString().trim().isNotEmpty == true &&
+              e['translation']?.toString().trim().isNotEmpty == true,
+        )
+        .toList();
+    final validCount = validItems.length;
+    final totalCount = parsedItems.length;
+
+    final inputBorder = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(14),
+      borderSide: BorderSide(
+        color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+        width: 1.2,
+      ),
+    );
+    final focusedInputBorder = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(14),
+      borderSide: BorderSide(
+        color: isDark ? AppColors.brandDark : const Color(0xFF1E293B),
+        width: 1.5,
+      ),
+    );
 
     return Scaffold(
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'KO\'P SO\'Z',
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1,
-                color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
-              ),
-            ),
-            const Text(
-              'JSON orqali import',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-      ),
+      appBar: AppBar(title: const Text('JSON orqali import')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Deck Dropdown Picker
-            const Text(
-              'To\'plam *',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            // Destination Deck Picker
+            Text(
+              'Qaysi to\'plamga qo\'shilsin? *',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.white : const Color(0xFF0F172A),
+              ),
             ),
             const SizedBox(height: 6),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14),
               decoration: BoxDecoration(
-                color: isDark ? AppColors.darkCard : Colors.white,
+                color: isDark ? const Color(0xFF1E293B) : Colors.white,
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
-                  color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                  color: isDark
+                      ? const Color(0xFF334155)
+                      : const Color(0xFFE2E8F0),
                 ),
               ),
               child: DropdownButtonHideUnderline(
@@ -260,170 +443,371 @@ class _BulkImportScreenState extends State<BulkImportScreen> {
                   items: decks.map((d) {
                     return DropdownMenuItem(
                       value: d.id,
-                      child: Text('${d.icon} ${d.name}'),
+                      child: Text(
+                        '${d.icon} ${d.name} (${d.cardCount} ta so\'z)',
+                      ),
                     );
                   }).toList(),
                   onChanged: (v) => setState(() => _selectedDeckId = v),
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 18),
 
-            // JSON Text area with Sample Button
+            // Header Row: "JSON ma'lumot" + "Promptni olish"
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'JSON ma\'lumot',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.white : const Color(0xFF0F172A),
+                  ),
                 ),
-                TextButton(
-                  onPressed: () {
-                    _jsonController.text = _sampleJson;
-                    setState(() {});
-                  },
-                  child: const Text('Namunani ko\'rish', style: TextStyle(fontSize: 12)),
+                GestureDetector(
+                  onTap: () => _showPromptDialog(context, isDark),
+                  child: const Text(
+                    'Promptni olish',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF2563EB),
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
                 ),
               ],
             ),
+            const SizedBox(height: 8),
+
+            // JSON Editor
             TextFormField(
               controller: _jsonController,
+              minLines: 5,
               maxLines: 8,
-              style: const TextStyle(fontFamily: 'monospace', fontSize: 12.5),
-              decoration: const InputDecoration(
-                hintText: '[{"word":"serendipity","translation":"...","example":"..."}]',
+              style: const TextStyle(
+                fontFamily: 'monospace',
+                fontSize: 12.5,
+                height: 1.45,
+              ),
+              decoration: InputDecoration(
+                hintText: _sampleJson,
+                hintStyle: TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 12,
+                  color: isDark
+                      ? const Color(0xFF64748B)
+                      : const Color(0xFF94A3B8),
+                ),
+                contentPadding: const EdgeInsets.all(14),
+                border: inputBorder,
+                enabledBorder: inputBorder,
+                focusedBorder: focusedInputBorder,
               ),
               onChanged: (_) => setState(() {}),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
 
-            // File Upload Button
-            OutlinedButton.icon(
-              onPressed: _pickFile,
-              icon: const Icon(Icons.upload_file_rounded, size: 18),
-              label: const Text('.json fayl yuklash'),
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 12),
+            // Dashed Border Button: .json fayl yuklash
+            CustomPaint(
+              painter: DashedBorderPainter(
+                color: isDark
+                    ? const Color(0xFF475569)
+                    : const Color(0xFFCBD5E1),
+                strokeWidth: 1.2,
+                radius: 14,
+              ),
+              child: InkWell(
+                onTap: _pickFile,
+                borderRadius: BorderRadius.circular(14),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  alignment: Alignment.center,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.upload_rounded,
+                        size: 18,
+                        color: isDark
+                            ? Colors.white70
+                            : const Color(0xFF475569),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '.json fayl yuklash',
+                        style: TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w600,
+                          color: isDark
+                              ? Colors.white
+                              : const Color(0xFF334155),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 16),
 
-            // Live validation card
+            // Validation & Preview Box
             if (_jsonController.text.trim().isNotEmpty) ...[
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkCard : Colors.white,
+                  color: isDark
+                      ? const Color(0xFF1B2433)
+                      : const Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: isValid ? AppColors.success : AppColors.destructive,
+                    color: isDark
+                        ? const Color(0xFF334155)
+                        : const Color(0xFFE2E8F0),
                   ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Row: Checkmark + count
                     Row(
                       children: [
                         Icon(
-                          isValid ? Icons.check_circle_rounded : Icons.error_outline_rounded,
-                          color: isValid ? AppColors.success : AppColors.destructive,
+                          validCount > 0
+                              ? Icons.check_circle_outline_rounded
+                              : Icons.error_outline_rounded,
+                          color: validCount > 0
+                              ? const Color(0xFF10B981)
+                              : AppColors.destructive,
                           size: 20,
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          isValid
-                              ? '${parsedItems.length} ta so\'z yaroqli'
-                              : 'JSON formati noto\'g\'ri',
+                          '$validCount / $totalCount ta so\'z yaroqli',
                           style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: isValid ? AppColors.success : AppColors.destructive,
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w600,
+                            color: validCount > 0
+                                ? (isDark
+                                      ? Colors.white
+                                      : const Color(0xFF0F172A))
+                                : AppColors.destructive,
                           ),
                         ),
                       ],
                     ),
-                    if (isValid) ...[
-                      const SizedBox(height: 10),
-                      Text(
-                        'Ko\'rib chiqish (${parsedItems.take(5).length} ta):',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
-                          fontWeight: FontWeight.w600,
+                    const SizedBox(height: 8),
+
+                    // Row: Eye icon + "Ko'rib chiqish"
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.visibility_outlined,
+                          size: 15,
+                          color: isDark
+                              ? Colors.white54
+                              : const Color(0xFF64748B),
                         ),
-                      ),
-                      const SizedBox(height: 6),
-                      ...parsedItems.take(5).map((w) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 4),
-                          child: Text(
-                            '• ${w['word'] ?? ''} — ${w['translation'] ?? ''}',
-                            style: const TextStyle(fontSize: 12.5),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Ko\'rib chiqish',
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            color: isDark
+                                ? Colors.white54
+                                : const Color(0xFF64748B),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Card Preview Items
+                    if (validItems.isNotEmpty)
+                      ...validItems.take(4).map((item) {
+                        final w = item['word']?.toString() ?? '';
+                        final t = item['translation']?.toString() ?? '';
+                        final ex = (item['example'] ?? item['example_sentence'])
+                            ?.toString();
+
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? const Color(0xFF151C28)
+                                : Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isDark
+                                  ? const Color(0xFF334155)
+                                  : const Color(0xFFEDF2F7),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                w,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                t,
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  color: isDark
+                                      ? Colors.white60
+                                      : const Color(0xFF64748B),
+                                ),
+                              ),
+                              if (ex != null && ex.isNotEmpty) ...[
+                                const SizedBox(height: 2),
+                                Text(
+                                  ex,
+                                  style: TextStyle(
+                                    fontSize: 11.5,
+                                    fontStyle: FontStyle.italic,
+                                    color: isDark
+                                        ? Colors.white38
+                                        : const Color(0xFF94A3B8),
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                         );
-                      }),
-                      if (parsedItems.length > 5)
-                        Text(
-                          '+ yana ${parsedItems.length - 5} ta so\'z...',
-                          style: const TextStyle(fontSize: 11, fontStyle: FontStyle.italic),
+                      })
+                    else
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          'Yaroqli so\'zlar topilmadi. JSON ni tekshiring.',
+                          style: TextStyle(
+                            color: AppColors.destructive,
+                            fontSize: 12.5,
+                          ),
                         ),
-                    ],
+                      ),
+
+                    if (validItems.length > 4)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(
+                          '+ yana ${validItems.length - 4} ta so\'z import qilinadi',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontStyle: FontStyle.italic,
+                            color: isDark
+                                ? Colors.white54
+                                : const Color(0xFF64748B),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
             ],
 
-            // Import Button
+            // Submit Button: [📄] X ta so'zni import qilish
             ElevatedButton.icon(
-              onPressed: (_isImporting || !isValid) ? null : _handleImport,
+              onPressed: (validCount == 0 || _isImporting)
+                  ? null
+                  : _handleImport,
               icon: _isImporting
                   ? const SizedBox(
                       width: 18,
                       height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
                     )
-                  : const Icon(Icons.file_download_done_rounded, size: 20),
+                  : const Icon(Icons.description_outlined, size: 18),
               label: Text(
                 _isImporting
                     ? 'Import qilinmoqda...'
-                    : '${isValid ? parsedItems.length : ""} ta so\'zni import qilish',
+                    : '$validCount ta so\'zni import qilish',
+                style: const TextStyle(
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               style: ElevatedButton.styleFrom(
-                minimumSize: const Size(double.infinity, 52),
+                backgroundColor: const Color(0xFF1E293B),
+                foregroundColor: Colors.white,
+                disabledBackgroundColor: isDark
+                    ? const Color(0xFF1E293B).withValues(alpha: 0.4)
+                    : const Color(0xFFE2E8F0),
+                disabledForegroundColor: isDark
+                    ? Colors.white38
+                    : const Color(0xFF94A3B8),
+                padding: const EdgeInsets.symmetric(vertical: 15),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                elevation: 0,
               ),
             ),
             const SizedBox(height: 24),
 
             // Export Section
-            Divider(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
-            const SizedBox(height: 14),
-            const Text(
-              'Eksport',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Tanlangan to\'plamdagi so\'zlarni JSON faylga eksport qiling.',
-              style: TextStyle(
-                fontSize: 12,
-                color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
-              ),
+            Divider(
+              color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
             ),
             const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: _isExporting ? null : _handleExport,
-              icon: _isExporting
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.download_rounded, size: 18),
-              label: const Text('JSON eksport'),
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size(double.infinity, 50),
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'To\'plamni JSON ga eksport qilish',
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'So\'zlarni boshqalar bilan ulashing',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color: isDark
+                            ? AppColors.darkTextMuted
+                            : AppColors.lightTextMuted,
+                      ),
+                    ),
+                  ],
+                ),
+                OutlinedButton.icon(
+                  onPressed: _isExporting ? null : _handleExport,
+                  icon: _isExporting
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.share_rounded, size: 16),
+                  label: const Text('Eksport'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 8,
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 24),
           ],

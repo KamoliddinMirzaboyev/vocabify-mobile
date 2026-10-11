@@ -31,7 +31,7 @@ void main() {
         kind: OpKind.insert,
         table: 'cards',
         rows: [
-          {'id': 'c-1', 'word': 'test'}
+          {'id': 'c-1', 'word': 'test'},
         ],
       );
       final json = op.toJson();

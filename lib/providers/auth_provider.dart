@@ -1,6 +1,8 @@
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../core/services/supabase_service.dart';
 import '../core/services/offline_queue_service.dart';
 import '../core/services/cache_service.dart';
@@ -12,6 +14,7 @@ class AuthProvider extends ChangeNotifier {
   ProfileModel? _profile;
   bool _isLoading = true;
   StreamSubscription<AuthState>? _authSubscription;
+  int _authGeneration = 0;
 
   User? get user => _user;
   Session? get session => _session;
@@ -26,33 +29,40 @@ class AuthProvider extends ChangeNotifier {
   void _init() async {
     _session = SupabaseService.currentSession;
     _user = SupabaseService.currentUser;
+    CacheService.instance.activateUser(_user?.id);
+    await OfflineQueueService.instance.activateUser(_user?.id);
 
     if (_user != null) {
       // Instant display from local cache
       final cached = await CacheService.instance.getCachedProfile();
       if (cached != null) {
         _profile = cached;
-        _isLoading = false;
-        notifyListeners();
       }
+      _isLoading = false;
+      notifyListeners();
       loadProfile();
     } else {
       _isLoading = false;
       notifyListeners();
     }
 
-    _authSubscription = SupabaseService.client.auth.onAuthStateChange.listen((data) async {
+    _authSubscription = SupabaseService.client.auth.onAuthStateChange.listen((
+      data,
+    ) async {
+      final generation = ++_authGeneration;
       final session = data.session;
       _session = session;
       _user = session?.user;
+      CacheService.instance.activateUser(_user?.id);
+      await OfflineQueueService.instance.activateUser(_user?.id);
+      if (generation != _authGeneration) return;
 
       if (_user != null) {
         final cached = await CacheService.instance.getCachedProfile();
-        if (cached != null && _profile == null) {
-          _profile = cached;
-          _isLoading = false;
-          notifyListeners();
-        }
+        if (generation != _authGeneration) return;
+        _profile = cached;
+        _isLoading = false;
+        notifyListeners();
         loadProfile();
       } else {
         _profile = null;
@@ -63,25 +73,32 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> loadProfile() async {
-    if (_user == null) return;
+    final userId = _user?.id;
+    if (userId == null) return;
+    final generation = _authGeneration;
     try {
       final res = await SupabaseService.client
           .from('profiles')
-          .select('*')
-          .eq('id', _user!.id)
-          .maybeSingle();
+          .select(ProfileModel.databaseColumns)
+          .eq('id', userId)
+          .maybeSingle()
+          .timeout(const Duration(seconds: 4));
 
+      if (generation != _authGeneration || _user?.id != userId) return;
       if (res != null) {
         _profile = ProfileModel.fromJson(res);
         await CacheService.instance.cacheProfile(_profile!);
       }
     } catch (e) {
+      if (generation != _authGeneration || _user?.id != userId) return;
       debugPrint('Error loading profile: $e');
       // If network fails, try to load from cache if not already loaded
       _profile ??= await CacheService.instance.getCachedProfile();
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      if (generation == _authGeneration && _user?.id == userId) {
+        _isLoading = false;
+        notifyListeners();
+      }
     }
   }
 
@@ -97,6 +114,8 @@ class AuthProvider extends ChangeNotifier {
 
       _session = res.session;
       _user = res.user;
+      CacheService.instance.activateUser(_user?.id);
+      await OfflineQueueService.instance.activateUser(_user?.id);
       await loadProfile();
       return null;
     } on AuthException catch (e) {
@@ -118,11 +137,17 @@ class AuthProvider extends ChangeNotifier {
       final res = await SupabaseService.client.auth.signUp(
         email: email.trim(),
         password: password.trim(),
-        data: {'display_name': name.trim().isEmpty ? email.split('@')[0] : name.trim()},
+        data: {
+          'display_name': name.trim().isEmpty
+              ? email.split('@')[0]
+              : name.trim(),
+        },
       );
 
       _session = res.session;
       _user = res.user;
+      CacheService.instance.activateUser(_user?.id);
+      await OfflineQueueService.instance.activateUser(_user?.id);
 
       // Ensure profile exists or is created
       if (_user != null) {
@@ -144,21 +169,34 @@ class AuthProvider extends ChangeNotifier {
   Future<void> signOut() async {
     _isLoading = true;
     notifyListeners();
-    await SupabaseService.client.auth.signOut();
-    await CacheService.instance.clearUserCache();
-    _user = null;
-    _session = null;
-    _profile = null;
-    _isLoading = false;
-    notifyListeners();
+    final signingOutUserId = _user?.id;
+    ++_authGeneration;
+    try {
+      await SupabaseService.client.auth.signOut();
+    } finally {
+      await CacheService.instance.clearUserCache(userId: signingOutUserId);
+      _user = null;
+      _session = null;
+      _profile = null;
+      CacheService.instance.activateUser(null);
+      await OfflineQueueService.instance.activateUser(null);
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
-  Future<bool> updateProfile({required String displayName, required int dailyGoal}) async {
+  Future<bool> updateProfile({
+    required String displayName,
+    required int dailyGoal,
+  }) async {
     if (_user == null) return false;
 
     // Optimistic local update
     if (_profile != null) {
-      _profile = _profile!.copyWith(displayName: displayName, dailyGoal: dailyGoal);
+      _profile = _profile!.copyWith(
+        displayName: displayName,
+        dailyGoal: dailyGoal,
+      );
       await CacheService.instance.cacheProfile(_profile!);
       notifyListeners();
     }
@@ -181,6 +219,14 @@ class AuthProvider extends ChangeNotifier {
     } catch (e) {
       debugPrint('Error updating profile: $e');
       return false;
+    }
+  }
+
+  void updateLocalProfile(ProfileModel updatedProfile) {
+    if (_profile?.id == updatedProfile.id || _user?.id == updatedProfile.id) {
+      _profile = updatedProfile;
+      CacheService.instance.cacheProfile(updatedProfile);
+      notifyListeners();
     }
   }
 

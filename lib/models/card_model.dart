@@ -70,8 +70,12 @@ class CardModel {
           : null,
       totalReviews: (json['total_reviews'] as num?)?.toInt() ?? 0,
       correctReviews: (json['correct_reviews'] as num?)?.toInt() ?? 0,
-      createdAt: json['created_at'] != null ? DateTime.tryParse(json['created_at']) : null,
-      updatedAt: json['updated_at'] != null ? DateTime.tryParse(json['updated_at']) : null,
+      createdAt: json['created_at'] != null
+          ? DateTime.tryParse(json['created_at'])
+          : null,
+      updatedAt: json['updated_at'] != null
+          ? DateTime.tryParse(json['updated_at'])
+          : null,
     );
   }
 
@@ -93,7 +97,8 @@ class CardModel {
       'interval_days': intervalDays,
       'repetitions': repetitions,
       'due_date': dueDate,
-      if (lastReviewedAt != null) 'last_reviewed_at': lastReviewedAt!.toIso8601String(),
+      if (lastReviewedAt != null)
+        'last_reviewed_at': lastReviewedAt!.toIso8601String(),
       'total_reviews': totalReviews,
       'correct_reviews': correctReviews,
       if (createdAt != null) 'created_at': createdAt!.toIso8601String(),
@@ -117,6 +122,7 @@ class CardModel {
     DateTime? lastReviewedAt,
     int? totalReviews,
     int? correctReviews,
+    DateTime? updatedAt,
   }) {
     return CardModel(
       id: id,
@@ -139,7 +145,7 @@ class CardModel {
       totalReviews: totalReviews ?? this.totalReviews,
       correctReviews: correctReviews ?? this.correctReviews,
       createdAt: createdAt,
-      updatedAt: updatedAt,
+      updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 }

@@ -1,6 +1,8 @@
 import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../core/constants/app_colors.dart';
 import '../../core/services/tts_service.dart';
 import '../../core/utils/srs.dart';
@@ -8,6 +10,7 @@ import '../../core/utils/helpers.dart';
 import '../../models/card_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/study_provider.dart';
+import '../../providers/stats_provider.dart';
 
 class StudyScreen extends StatefulWidget {
   final String? deckId;
@@ -25,7 +28,8 @@ class StudyScreen extends StatefulWidget {
   State<StudyScreen> createState() => _StudyScreenState();
 }
 
-class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStateMixin {
+class _StudyScreenState extends State<StudyScreen>
+    with SingleTickerProviderStateMixin {
   late AnimationController _flipController;
   late Animation<double> _flipAnimation;
   final TextEditingController _typingInputController = TextEditingController();
@@ -35,21 +39,21 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
     super.initState();
     _flipController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 400),
+      duration: const Duration(milliseconds: 350),
     );
     _flipAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _flipController, curve: Curves.easeInOut),
+      CurvedAnimation(parent: _flipController, curve: Curves.easeInOutCubic),
     );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final userId = context.read<AuthProvider>().user?.id;
       if (userId != null) {
         context.read<StudyProvider>().initSession(
-              userId: userId,
-              deckId: widget.deckId,
-              startInTypingMode: widget.startInTypingMode,
-              forceAllCards: widget.forceAllCards,
-            );
+          userId: userId,
+          deckId: widget.deckId,
+          startInTypingMode: widget.startInTypingMode,
+          forceAllCards: widget.forceAllCards,
+        );
       }
     });
   }
@@ -113,7 +117,9 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
                   'Yangi so\'z qo\'shing yoki ertaga qayting',
                   style: TextStyle(
                     fontSize: 14,
-                    color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                    color: isDark
+                        ? AppColors.darkTextMuted
+                        : AppColors.lightTextMuted,
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -143,16 +149,25 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => Navigator.pop(context),
         ),
-        title: ClipRRect(
-          borderRadius: BorderRadius.circular(6),
-          child: LinearProgressIndicator(
-            value: progress,
-            minHeight: 8,
-            backgroundColor: isDark ? AppColors.darkSecondary : AppColors.lightSecondary,
-            valueColor: AlwaysStoppedAnimation<Color>(
-              isDark ? AppColors.brandDark : AppColors.brand,
-            ),
-          ),
+        title: TweenAnimationBuilder<double>(
+          tween: Tween<double>(begin: 0.0, end: progress),
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeOutCubic,
+          builder: (context, val, _) {
+            return ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: LinearProgressIndicator(
+                value: val,
+                minHeight: 8,
+                backgroundColor: isDark
+                    ? AppColors.darkSecondary
+                    : AppColors.lightSecondary,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  isDark ? AppColors.brandDark : AppColors.brand,
+                ),
+              ),
+            );
+          },
         ),
         actions: [
           Padding(
@@ -163,7 +178,9 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
-                  color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                  color: isDark
+                      ? AppColors.darkTextMuted
+                      : AppColors.lightTextMuted,
                 ),
               ),
             ),
@@ -178,7 +195,9 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               child: Container(
                 decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkSecondary : AppColors.lightSecondary,
+                  color: isDark
+                      ? AppColors.darkSecondary
+                      : AppColors.lightSecondary,
                   borderRadius: BorderRadius.circular(14),
                 ),
                 padding: const EdgeInsets.all(4),
@@ -187,7 +206,10 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
                     Expanded(
                       child: InkWell(
                         onTap: () {
-                          if (study.isTypingMode) study.setTypingMode(false);
+                          if (study.isTypingMode) {
+                            _flipController.reset();
+                            study.setTypingMode(false);
+                          }
                         },
                         borderRadius: BorderRadius.circular(12),
                         child: Container(
@@ -200,10 +222,12 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
                             boxShadow: !study.isTypingMode
                                 ? [
                                     BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.06),
+                                      color: Colors.black.withValues(
+                                        alpha: 0.06,
+                                      ),
                                       blurRadius: 4,
                                       offset: const Offset(0, 2),
-                                    )
+                                    ),
                                   ]
                                 : null,
                           ),
@@ -215,7 +239,9 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
                                 Icons.style_rounded,
                                 size: 18,
                                 color: !study.isTypingMode
-                                    ? (isDark ? Colors.white : AppColors.lightText)
+                                    ? (isDark
+                                          ? Colors.white
+                                          : AppColors.lightText)
                                     : Colors.grey,
                               ),
                               const SizedBox(width: 6),
@@ -225,7 +251,9 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
                                   fontSize: 13,
                                   fontWeight: FontWeight.bold,
                                   color: !study.isTypingMode
-                                      ? (isDark ? Colors.white : AppColors.lightText)
+                                      ? (isDark
+                                            ? Colors.white
+                                            : AppColors.lightText)
                                       : Colors.grey,
                                 ),
                               ),
@@ -237,7 +265,10 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
                     Expanded(
                       child: InkWell(
                         onTap: () {
-                          if (!study.isTypingMode) study.setTypingMode(true);
+                          if (!study.isTypingMode) {
+                            _flipController.reset();
+                            study.setTypingMode(true);
+                          }
                         },
                         borderRadius: BorderRadius.circular(12),
                         child: Container(
@@ -250,10 +281,12 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
                             boxShadow: study.isTypingMode
                                 ? [
                                     BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.06),
+                                      color: Colors.black.withValues(
+                                        alpha: 0.06,
+                                      ),
                                       blurRadius: 4,
                                       offset: const Offset(0, 2),
-                                    )
+                                    ),
                                   ]
                                 : null,
                           ),
@@ -265,7 +298,9 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
                                 Icons.keyboard_rounded,
                                 size: 18,
                                 color: study.isTypingMode
-                                    ? (isDark ? Colors.white : AppColors.lightText)
+                                    ? (isDark
+                                          ? Colors.white
+                                          : AppColors.lightText)
                                     : Colors.grey,
                               ),
                               const SizedBox(width: 6),
@@ -275,7 +310,9 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
                                   fontSize: 13,
                                   fontWeight: FontWeight.bold,
                                   color: study.isTypingMode
-                                      ? (isDark ? Colors.white : AppColors.lightText)
+                                      ? (isDark
+                                            ? Colors.white
+                                            : AppColors.lightText)
                                       : Colors.grey,
                                 ),
                               ),
@@ -293,9 +330,50 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(20),
-                child: study.isTypingMode
-                    ? _buildTypingCard(context, card, study, isDark)
-                    : _build3DFlipCard(context, card, study, isDark),
+                child: AnimatedSlide(
+                  offset: study.exitAnim == 'left'
+                      ? const Offset(-1.25, 0.0)
+                      : study.exitAnim == 'right'
+                      ? const Offset(1.25, 0.0)
+                      : Offset.zero,
+                  duration: const Duration(milliseconds: 260),
+                  curve: Curves.easeInCubic,
+                  child: AnimatedRotation(
+                    turns: study.exitAnim == 'left'
+                        ? -0.04
+                        : study.exitAnim == 'right'
+                        ? 0.04
+                        : 0.0,
+                    duration: const Duration(milliseconds: 260),
+                    curve: Curves.easeInCubic,
+                    child: AnimatedOpacity(
+                      opacity: study.exitAnim != null ? 0.0 : 1.0,
+                      duration: const Duration(milliseconds: 240),
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 280),
+                        switchInCurve: Curves.easeOutCubic,
+                        transitionBuilder: (child, anim) {
+                          return FadeTransition(
+                            opacity: anim,
+                            child: ScaleTransition(
+                              scale: Tween<double>(
+                                begin: 0.94,
+                                end: 1.0,
+                              ).animate(anim),
+                              child: child,
+                            ),
+                          );
+                        },
+                        child: KeyedSubtree(
+                          key: ValueKey('${card.id}_${study.isTypingMode}'),
+                          child: study.isTypingMode
+                              ? _buildTypingCard(context, card, study, isDark)
+                              : _build3DFlipCard(context, card, study, isDark),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ),
 
@@ -326,7 +404,7 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
 
         return Transform(
           transform: Matrix4.identity()
-            ..setEntry(3, 2, 0.001) // perspective
+            ..setEntry(3, 2, 0.0014) // smooth realistic perspective
             ..rotateY(angle),
           alignment: Alignment.center,
           child: isFront
@@ -373,26 +451,28 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
-                color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                color: isDark
+                    ? AppColors.darkTextMuted
+                    : AppColors.lightTextMuted,
                 letterSpacing: 1,
               ),
             ),
             const Spacer(),
             Text(
               card.word,
-              style: const TextStyle(
-                fontSize: 34,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 34, fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
-            if (card.pronunciation != null && card.pronunciation!.isNotEmpty) ...[
+            if (card.pronunciation != null &&
+                card.pronunciation!.isNotEmpty) ...[
               const SizedBox(height: 8),
               Text(
                 '/${card.pronunciation}/',
                 style: TextStyle(
                   fontSize: 16,
-                  color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                  color: isDark
+                      ? AppColors.darkTextMuted
+                      : AppColors.lightTextMuted,
                 ),
               ),
             ],
@@ -408,7 +488,9 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
               'Javobni ko\'rish uchun bosing',
               style: TextStyle(
                 fontSize: 12,
-                color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                color: isDark
+                    ? AppColors.darkTextMuted
+                    : AppColors.lightTextMuted,
               ),
             ),
           ],
@@ -451,14 +533,19 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
-                  color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                  color: isDark
+                      ? AppColors.darkTextMuted
+                      : AppColors.lightTextMuted,
                   letterSpacing: 1,
                 ),
               ),
               const SizedBox(height: 12),
               Text(
                 card.word,
-                style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
@@ -482,7 +569,9 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
                       TextSpan(
                         text: 'Izoh: ',
                         style: TextStyle(
-                          color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                          color: isDark
+                              ? AppColors.darkTextMuted
+                              : AppColors.lightTextMuted,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -504,7 +593,9 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
                       TextSpan(
                         text: 'Sinonim: ',
                         style: TextStyle(
-                          color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                          color: isDark
+                              ? AppColors.darkTextMuted
+                              : AppColors.lightTextMuted,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -526,7 +617,9 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
                       TextSpan(
                         text: 'Antonim: ',
                         style: TextStyle(
-                          color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                          color: isDark
+                              ? AppColors.darkTextMuted
+                              : AppColors.lightTextMuted,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -537,12 +630,15 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
                 const SizedBox(height: 10),
               ],
 
-              if (card.exampleSentence != null && card.exampleSentence!.isNotEmpty) ...[
+              if (card.exampleSentence != null &&
+                  card.exampleSentence!.isNotEmpty) ...[
                 const SizedBox(height: 6),
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: isDark ? AppColors.darkSecondary : AppColors.lightSecondary,
+                    color: isDark
+                        ? AppColors.darkSecondary
+                        : AppColors.lightSecondary,
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Text(
@@ -593,7 +689,9 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
               style: TextStyle(
                 fontSize: 10.5,
                 fontWeight: FontWeight.bold,
-                color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                color: isDark
+                    ? AppColors.darkTextMuted
+                    : AppColors.lightTextMuted,
                 letterSpacing: 1,
               ),
             ),
@@ -603,7 +701,9 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: isDark ? AppColors.darkSecondary : AppColors.lightSecondary,
+                color: isDark
+                    ? AppColors.darkSecondary
+                    : AppColors.lightSecondary,
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Column(
@@ -613,21 +713,29 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
                     'Tarjima',
                     style: TextStyle(
                       fontSize: 11,
-                      color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                      color: isDark
+                          ? AppColors.darkTextMuted
+                          : AppColors.lightTextMuted,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     card.translation,
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                  if (card.definition != null && card.definition!.isNotEmpty) ...[
+                  if (card.definition != null &&
+                      card.definition!.isNotEmpty) ...[
                     const SizedBox(height: 4),
                     Text(
                       card.definition!,
                       style: TextStyle(
                         fontSize: 12.5,
-                        color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                        color: isDark
+                            ? AppColors.darkTextMuted
+                            : AppColors.lightTextMuted,
                       ),
                     ),
                   ],
@@ -637,13 +745,16 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
             const SizedBox(height: 12),
 
             // Masked sentence
-            if (card.exampleSentence != null && card.exampleSentence!.isNotEmpty)
+            if (card.exampleSentence != null &&
+                card.exampleSentence!.isNotEmpty)
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
-                    color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                    color: isDark
+                        ? AppColors.darkBorder
+                        : AppColors.lightBorder,
                   ),
                 ),
                 child: Text(
@@ -659,9 +770,7 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
               enabled: !study.isTypingChecked,
               autofocus: true,
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              decoration: const InputDecoration(
-                hintText: 'So\'zni yozing...',
-              ),
+              decoration: const InputDecoration(hintText: 'So\'zni yozing...'),
               onChanged: (v) => study.updateTypedAnswer(v),
             ),
             const SizedBox(height: 10),
@@ -677,14 +786,19 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
                   icon: const Icon(Icons.lightbulb_outline_rounded, size: 16),
                   label: const Text('Yordam'),
                   style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                   ),
                 ),
                 Text(
                   'Urinish: ${study.typingAttempts}',
                   style: TextStyle(
                     fontSize: 12,
-                    color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                    color: isDark
+                        ? AppColors.darkTextMuted
+                        : AppColors.lightTextMuted,
                   ),
                 ),
               ],
@@ -693,7 +807,10 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
             if (study.hintLevel > 0 && !study.isTypingChecked) ...[
               const SizedBox(height: 10),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.brandDark.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(12),
@@ -758,7 +875,10 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
                     const SizedBox(height: 6),
                     Text(
                       'To\'g\'ri javob: ${card.word}',
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),
@@ -781,9 +901,14 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
         onPressed: () => _handleFlip(study),
         style: ElevatedButton.styleFrom(
           minimumSize: const Size(double.infinity, 56),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
         ),
-        child: const Text('Javobni ko\'rsatish', style: TextStyle(fontSize: 16)),
+        child: const Text(
+          'Javobni ko\'rsatish',
+          style: TextStyle(fontSize: 16),
+        ),
       );
     }
 
@@ -803,9 +928,14 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
       children: [
         Expanded(
           child: ElevatedButton(
-            onPressed: () {
-              _flipController.reset();
-              study.rate(Rating.again, userId: userId, currentProfile: profile);
+            onPressed: () async {
+              await study.rate(
+                Rating.again,
+                userId: userId,
+                currentProfile: profile,
+                onProfileUpdated: auth.updateLocalProfile,
+              );
+              if (mounted) _flipController.reset();
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.destructive.withValues(alpha: 0.12),
@@ -813,13 +943,19 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
               minimumSize: const Size(0, 60),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(18),
-                side: const BorderSide(color: AppColors.destructive, width: 1.5),
+                side: const BorderSide(
+                  color: AppColors.destructive,
+                  width: 1.5,
+                ),
               ),
             ),
             child: const Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text('Bilmayman', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                Text(
+                  'Bilmayman',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                ),
                 Text('Yana ko\'raman', style: TextStyle(fontSize: 11)),
               ],
             ),
@@ -828,9 +964,14 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
         const SizedBox(width: 14),
         Expanded(
           child: ElevatedButton(
-            onPressed: () {
-              _flipController.reset();
-              study.rate(Rating.good, userId: userId, currentProfile: profile);
+            onPressed: () async {
+              await study.rate(
+                Rating.good,
+                userId: userId,
+                currentProfile: profile,
+                onProfileUpdated: auth.updateLocalProfile,
+              );
+              if (mounted) _flipController.reset();
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.success.withValues(alpha: 0.12),
@@ -844,7 +985,10 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text('Bilaman', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                const Text(
+                  'Bilaman',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                ),
                 Text(hintTime, style: const TextStyle(fontSize: 11)),
               ],
             ),
@@ -869,7 +1013,9 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
             : null,
         style: ElevatedButton.styleFrom(
           minimumSize: const Size(double.infinity, 56),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
         ),
         child: const Text('Tekshirish', style: TextStyle(fontSize: 16)),
       );
@@ -877,14 +1023,21 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
 
     if (study.isTypingCorrect) {
       return ElevatedButton(
-        onPressed: () {
+        onPressed: () async {
           _typingInputController.clear();
-          study.rate(study.getTypingRating(), userId: userId, currentProfile: profile);
+          await study.rate(
+            study.getTypingRating(),
+            userId: userId,
+            currentProfile: profile,
+            onProfileUpdated: auth.updateLocalProfile,
+          );
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.success,
           minimumSize: const Size(double.infinity, 56),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
         ),
         child: const Text('Keyingi', style: TextStyle(fontSize: 16)),
       );
@@ -894,15 +1047,22 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
       children: [
         Expanded(
           child: OutlinedButton(
-            onPressed: () {
+            onPressed: () async {
               _typingInputController.clear();
-              study.rate(Rating.again, userId: userId, currentProfile: profile);
+              await study.rate(
+                Rating.again,
+                userId: userId,
+                currentProfile: profile,
+                onProfileUpdated: auth.updateLocalProfile,
+              );
             },
             style: OutlinedButton.styleFrom(
               foregroundColor: AppColors.destructive,
               side: const BorderSide(color: AppColors.destructive),
               minimumSize: const Size(0, 56),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+              ),
             ),
             child: const Text('Bilmayman'),
           ),
@@ -910,13 +1070,20 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
         const SizedBox(width: 12),
         Expanded(
           child: ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               _typingInputController.clear();
-              study.rate(Rating.good, userId: userId, currentProfile: profile);
+              await study.rate(
+                Rating.good,
+                userId: userId,
+                currentProfile: profile,
+                onProfileUpdated: auth.updateLocalProfile,
+              );
             },
             style: ElevatedButton.styleFrom(
               minimumSize: const Size(0, 56),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+              ),
             ),
             child: const Text('Bilaman'),
           ),
@@ -960,7 +1127,9 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
                 '${study.totalDone} ta so\'z takrorladingiz',
                 style: TextStyle(
                   fontSize: 15,
-                  color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                  color: isDark
+                      ? AppColors.darkTextMuted
+                      : AppColors.lightTextMuted,
                 ),
               ),
               const SizedBox(height: 28),
@@ -1043,7 +1212,16 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
                     const SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: () => Navigator.pop(context),
+                        onPressed: () {
+                          final uid = context.read<AuthProvider>().user?.id;
+                          if (uid != null) {
+                            context.read<StatsProvider>().loadStats(
+                                  uid,
+                                  force: true,
+                                );
+                          }
+                          Navigator.pop(context);
+                        },
                         style: ElevatedButton.styleFrom(
                           minimumSize: const Size(0, 52),
                           shape: RoundedRectangleBorder(
@@ -1084,7 +1262,9 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
             label,
             style: TextStyle(
               fontSize: 12,
-              color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+              color: isDark
+                  ? AppColors.darkTextMuted
+                  : AppColors.lightTextMuted,
             ),
           ),
         ],

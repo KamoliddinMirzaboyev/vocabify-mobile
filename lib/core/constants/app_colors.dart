@@ -5,7 +5,9 @@ class AppColors {
   static const Color brand = Color(0xFF1E2D4A); // #1e2d4a Primary
   static const Color brandHover = Color(0xFF17243B);
   static const Color brandLight = Color(0xFFF0F4FA);
-  static const Color brandDark = Color(0xFF4F75B3); // Light brand for dark theme
+  static const Color brandDark = Color(
+    0xFF4F75B3,
+  ); // Light brand for dark theme
 
   // Accents & Alerts
   static const Color accent = Color(0xFFF59E0B); // Amber accent

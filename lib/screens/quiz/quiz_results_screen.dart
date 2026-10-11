@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../core/constants/app_colors.dart';
 import '../../models/card_model.dart';
 import '../../models/deck_model.dart';
@@ -27,7 +28,11 @@ class QuizResultsScreen extends StatelessWidget {
       return {'emoji': '🎉', 'label': 'Yaxshi!', 'color': AppColors.success};
     }
     if (percentage >= 60) {
-      return {'emoji': '👍', 'label': 'Yaxshi harakat!', 'color': AppColors.accent};
+      return {
+        'emoji': '👍',
+        'label': 'Yaxshi harakat!',
+        'color': AppColors.accent,
+      };
     }
     return {'emoji': '📚', 'label': 'Mashq qiling!', 'color': Colors.grey};
   }
@@ -37,8 +42,9 @@ class QuizResultsScreen extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final correctCount = results.where((r) => r.isCorrect).length;
     final wrongCount = results.length - correctCount;
-    final percentage =
-        results.isNotEmpty ? ((correctCount / results.length) * 100).round() : 0;
+    final percentage = results.isNotEmpty
+        ? ((correctCount / results.length) * 100).round()
+        : 0;
     final grade = _getGrade(percentage);
 
     return Scaffold(
@@ -56,7 +62,9 @@ class QuizResultsScreen extends StatelessWidget {
                 fontSize: 10,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1,
-                color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                color: isDark
+                    ? AppColors.darkTextMuted
+                    : AppColors.lightTextMuted,
               ),
             ),
             const Text(
@@ -90,7 +98,10 @@ class QuizResultsScreen extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  Text(grade['emoji'] as String, style: const TextStyle(fontSize: 54)),
+                  Text(
+                    grade['emoji'] as String,
+                    style: const TextStyle(fontSize: 54),
+                  ),
                   const SizedBox(height: 6),
                   Text(
                     grade['label'] as String,
@@ -114,14 +125,21 @@ class QuizResultsScreen extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.check_circle_rounded, color: AppColors.success, size: 24),
+                          const Icon(
+                            Icons.check_circle_rounded,
+                            color: AppColors.success,
+                            size: 24,
+                          ),
                           const SizedBox(width: 8),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 '$correctCount',
-                                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                               Text(
                                 'To\'g\'ri',
@@ -139,19 +157,28 @@ class QuizResultsScreen extends StatelessWidget {
                       Container(
                         height: 36,
                         width: 1,
-                        color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                        color: isDark
+                            ? AppColors.darkBorder
+                            : AppColors.lightBorder,
                         margin: const EdgeInsets.symmetric(horizontal: 32),
                       ),
                       Row(
                         children: [
-                          const Icon(Icons.cancel_rounded, color: AppColors.destructive, size: 24),
+                          const Icon(
+                            Icons.cancel_rounded,
+                            color: AppColors.destructive,
+                            size: 24,
+                          ),
                           const SizedBox(width: 8),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 '$wrongCount',
-                                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                               Text(
                                 'Noto\'g\'ri',
@@ -186,15 +213,23 @@ class QuizResultsScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
                     child: const Text(
                       'Javoblarni ko\'rish',
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                   Divider(
                     height: 1,
-                    color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                    color: isDark
+                        ? AppColors.darkBorder
+                        : AppColors.lightBorder,
                   ),
                   ListView.separated(
                     shrinkWrap: true,
@@ -202,7 +237,9 @@ class QuizResultsScreen extends StatelessWidget {
                     itemCount: results.length,
                     separatorBuilder: (context, index) => Divider(
                       height: 1,
-                      color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                      color: isDark
+                          ? AppColors.darkBorder
+                          : AppColors.lightBorder,
                     ),
                     itemBuilder: (context, i) {
                       final item = results[i];
@@ -248,7 +285,8 @@ class QuizResultsScreen extends StatelessWidget {
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
-                                  if (!item.isCorrect && item.selectedAnswer.isNotEmpty) ...[
+                                  if (!item.isCorrect &&
+                                      item.selectedAnswer.isNotEmpty) ...[
                                     const SizedBox(height: 2),
                                     Text(
                                       '✗ ${item.selectedAnswer}',
@@ -286,7 +324,9 @@ class QuizResultsScreen extends StatelessWidget {
               label: const Text('Qayta boshlash'),
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size(double.infinity, 52),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
             ),
             const SizedBox(height: 10),
@@ -294,7 +334,9 @@ class QuizResultsScreen extends StatelessWidget {
               onPressed: () => Navigator.pop(context),
               style: OutlinedButton.styleFrom(
                 minimumSize: const Size(double.infinity, 50),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
               child: const Text('To\'plamga qaytish'),
             ),

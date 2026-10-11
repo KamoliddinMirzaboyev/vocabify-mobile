@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../core/constants/app_colors.dart';
 import '../../models/card_model.dart';
 import '../../models/deck_model.dart';
@@ -8,11 +9,7 @@ class QuizSetupScreen extends StatefulWidget {
   final DeckModel deck;
   final List<CardModel> cards;
 
-  const QuizSetupScreen({
-    super.key,
-    required this.deck,
-    required this.cards,
-  });
+  const QuizSetupScreen({super.key, required this.deck, required this.cards});
 
   @override
   State<QuizSetupScreen> createState() => _QuizSetupScreenState();
@@ -37,7 +34,9 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
                 fontSize: 10,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1,
-                color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                color: isDark
+                    ? AppColors.darkTextMuted
+                    : AppColors.lightTextMuted,
               ),
             ),
             const Text(
@@ -84,7 +83,9 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
                           '${widget.cards.length} ta so\'z',
                           style: TextStyle(
                             fontSize: 13,
-                            color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                            color: isDark
+                                ? AppColors.darkTextMuted
+                                : AppColors.lightTextMuted,
                           ),
                         ),
                       ],
@@ -114,7 +115,9 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 1,
-                      color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                      color: isDark
+                          ? AppColors.darkTextMuted
+                          : AppColors.lightTextMuted,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -128,12 +131,18 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             decoration: BoxDecoration(
                               color: _direction == 'en-uz'
-                                  ? (isDark ? AppColors.brandDark : AppColors.brand)
-                                  : (isDark ? AppColors.darkSecondary : AppColors.lightSecondary),
+                                  ? (isDark
+                                        ? AppColors.brandDark
+                                        : AppColors.brand)
+                                  : (isDark
+                                        ? AppColors.darkSecondary
+                                        : AppColors.lightSecondary),
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
                                 color: _direction == 'en-uz'
-                                    ? (isDark ? AppColors.brandDark : AppColors.brand)
+                                    ? (isDark
+                                          ? AppColors.brandDark
+                                          : AppColors.brand)
                                     : Colors.transparent,
                                 width: 2,
                               ),
@@ -148,7 +157,9 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
                                     fontWeight: FontWeight.bold,
                                     color: _direction == 'en-uz'
                                         ? Colors.white
-                                        : (isDark ? AppColors.darkText : AppColors.lightText),
+                                        : (isDark
+                                              ? AppColors.darkText
+                                              : AppColors.lightText),
                                   ),
                                 ),
                                 const SizedBox(height: 2),
@@ -159,8 +170,8 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
                                     color: _direction == 'en-uz'
                                         ? Colors.white.withValues(alpha: 0.8)
                                         : (isDark
-                                            ? AppColors.darkTextMuted
-                                            : AppColors.lightTextMuted),
+                                              ? AppColors.darkTextMuted
+                                              : AppColors.lightTextMuted),
                                   ),
                                 ),
                               ],
@@ -177,12 +188,18 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             decoration: BoxDecoration(
                               color: _direction == 'uz-en'
-                                  ? (isDark ? AppColors.brandDark : AppColors.brand)
-                                  : (isDark ? AppColors.darkSecondary : AppColors.lightSecondary),
+                                  ? (isDark
+                                        ? AppColors.brandDark
+                                        : AppColors.brand)
+                                  : (isDark
+                                        ? AppColors.darkSecondary
+                                        : AppColors.lightSecondary),
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
                                 color: _direction == 'uz-en'
-                                    ? (isDark ? AppColors.brandDark : AppColors.brand)
+                                    ? (isDark
+                                          ? AppColors.brandDark
+                                          : AppColors.brand)
                                     : Colors.transparent,
                                 width: 2,
                               ),
@@ -197,7 +214,9 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
                                     fontWeight: FontWeight.bold,
                                     color: _direction == 'uz-en'
                                         ? Colors.white
-                                        : (isDark ? AppColors.darkText : AppColors.lightText),
+                                        : (isDark
+                                              ? AppColors.darkText
+                                              : AppColors.lightText),
                                   ),
                                 ),
                                 const SizedBox(height: 2),
@@ -208,8 +227,8 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
                                     color: _direction == 'uz-en'
                                         ? Colors.white.withValues(alpha: 0.8)
                                         : (isDark
-                                            ? AppColors.darkTextMuted
-                                            : AppColors.lightTextMuted),
+                                              ? AppColors.darkTextMuted
+                                              : AppColors.lightTextMuted),
                                   ),
                                 ),
                               ],
@@ -243,10 +262,15 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
                           width: 38,
                           height: 38,
                           decoration: BoxDecoration(
-                            color: isDark ? AppColors.darkSecondary : AppColors.lightSecondary,
+                            color: isDark
+                                ? AppColors.darkSecondary
+                                : AppColors.lightSecondary,
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: const Icon(Icons.track_changes_rounded, size: 20),
+                          child: const Icon(
+                            Icons.track_changes_rounded,
+                            size: 20,
+                          ),
                         ),
                         const SizedBox(width: 10),
                         Column(
@@ -276,7 +300,9 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
                   Container(
                     width: 1,
                     height: 36,
-                    color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                    color: isDark
+                        ? AppColors.darkBorder
+                        : AppColors.lightBorder,
                   ),
                   const SizedBox(width: 16),
                   Expanded(
@@ -286,7 +312,9 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
                           width: 38,
                           height: 38,
                           decoration: BoxDecoration(
-                            color: isDark ? AppColors.darkSecondary : AppColors.lightSecondary,
+                            color: isDark
+                                ? AppColors.darkSecondary
+                                : AppColors.lightSecondary,
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: const Icon(Icons.timer_outlined, size: 20),
@@ -355,7 +383,9 @@ class _QuizSetupScreenState extends State<QuizSetupScreen> {
               label: const Text('Boshlash'),
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size(double.infinity, 54),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
             ),
           ],

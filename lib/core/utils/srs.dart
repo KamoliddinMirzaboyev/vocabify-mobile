@@ -1,4 +1,5 @@
 import 'dart:math';
+
 import 'package:intl/intl.dart';
 
 enum Rating {
@@ -65,22 +66,34 @@ class SrsAlgorithm {
       intervalDays = 0;
       easeFactor = max(1.3, easeFactor - 0.2);
     } else {
-      final q = rating == Rating.hard ? 3 : rating == Rating.good ? 4 : 5;
+      final q = rating == Rating.hard
+          ? 3
+          : rating == Rating.good
+          ? 4
+          : 5;
       easeFactor = max(
         1.3,
         easeFactor + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02)),
       );
 
       if (repetitions == 0) {
-        intervalDays = rating == Rating.hard ? 1 : rating == Rating.good ? 1 : 3;
+        intervalDays = rating == Rating.hard
+            ? 1
+            : rating == Rating.good
+            ? 1
+            : 3;
       } else if (repetitions == 1) {
-        intervalDays = rating == Rating.hard ? 3 : rating == Rating.good ? 4 : 7;
+        intervalDays = rating == Rating.hard
+            ? 3
+            : rating == Rating.good
+            ? 4
+            : 7;
       } else {
         final mult = rating == Rating.hard
             ? 1.2
             : rating == Rating.good
-                ? easeFactor
-                : easeFactor * 1.3;
+            ? easeFactor
+            : easeFactor * 1.3;
         intervalDays = max(1, (intervalDays * mult).round());
       }
       repetitions += 1;

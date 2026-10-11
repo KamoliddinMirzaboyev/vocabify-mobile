@@ -1,11 +1,16 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+
 import 'core/constants/app_colors.dart';
 import 'core/constants/app_theme.dart';
 import 'core/services/supabase_service.dart';
+import 'core/services/cache_service.dart';
 import 'core/services/offline_queue_service.dart';
 import 'core/services/tts_service.dart';
+import 'core/services/notification_service.dart';
 import 'providers/auth_provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/decks_provider.dart';
@@ -13,6 +18,7 @@ import 'providers/cards_provider.dart';
 import 'providers/study_provider.dart';
 import 'providers/quiz_provider.dart';
 import 'providers/stats_provider.dart';
+import 'providers/duel_provider.dart';
 import 'screens/splash/splash_screen.dart';
 import 'screens/auth/auth_screen.dart';
 import 'screens/main_navigation_screen.dart';
@@ -31,8 +37,7 @@ void main() async {
   // Initialize Supabase & Core Services
   try {
     await SupabaseService.initialize();
-    await OfflineQueueService.instance.initialize();
-    await TtsService.instance.initialize();
+    CacheService.instance.activateUser(SupabaseService.currentUser?.id);
   } catch (e) {
     debugPrint('Init error: $e');
   }
@@ -47,10 +52,28 @@ void main() async {
         ChangeNotifierProvider(create: (_) => StudyProvider()),
         ChangeNotifierProvider(create: (_) => QuizProvider()),
         ChangeNotifierProvider(create: (_) => StatsProvider()),
+        ChangeNotifierProvider(create: (_) => DuelProvider()),
       ],
       child: const VocabifyApp(),
     ),
   );
+
+  // Platform plugins are not required for the first frame. Initialize them in
+  // the background so TTS, notifications and outbox hydration cannot delay
+  // app launch.
+  unawaited(_initializeBackgroundServices());
+}
+
+Future<void> _initializeBackgroundServices() async {
+  try {
+    await Future.wait([
+      OfflineQueueService.instance.initialize(),
+      TtsService.instance.initialize(),
+      NotificationService.instance.initialize(),
+    ]);
+  } catch (error) {
+    debugPrint('Background service initialization error: $error');
+  }
 }
 
 class VocabifyApp extends StatelessWidget {

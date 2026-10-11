@@ -1,8 +1,11 @@
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
+
 import '../core/services/supabase_service.dart';
 import '../core/services/offline_queue_service.dart';
+import '../core/services/cache_service.dart';
 import '../models/card_model.dart';
 import '../models/deck_model.dart';
 
@@ -42,6 +45,7 @@ class QuizProvider extends ChangeNotifier {
   final List<QuizResultItem> _results = [];
 
   Timer? _timer;
+  Timer? _advanceTimer;
 
   DeckModel? get deck => _deck;
   String get direction => _direction;
@@ -55,21 +59,37 @@ class QuizProvider extends ChangeNotifier {
 
   QuizQuestion? get currentQuestion =>
       (_currentIndex >= 0 && _currentIndex < _questions.length)
-          ? _questions[_currentIndex]
-          : null;
+      ? _questions[_currentIndex]
+      : null;
 
-  bool get isQuizFinished => _questions.isNotEmpty && _currentIndex >= _questions.length;
+  bool get isQuizFinished =>
+      _questions.isNotEmpty && _currentIndex >= _questions.length;
 
   int get correctCount => _results.where((r) => r.isCorrect).length;
   int get wrongCount => _results.length - correctCount;
-  int get scorePercentage =>
-      _results.isNotEmpty ? ((correctCount / _results.length) * 100).round() : 0;
+  int get scorePercentage => _results.isNotEmpty
+      ? ((correctCount / _results.length) * 100).round()
+      : 0;
+
+  void clear() {
+    _timer?.cancel();
+    _advanceTimer?.cancel();
+    _deck = null;
+    _questions = [];
+    _results.clear();
+    _currentIndex = 0;
+    _selectedAnswer = null;
+    _isAnswered = false;
+    _isSubmitting = false;
+    notifyListeners();
+  }
 
   void initQuiz({
     required DeckModel deck,
     required List<CardModel> cards,
     required String direction,
   }) {
+    _advanceTimer?.cancel();
     _deck = deck;
     _direction = direction;
     _currentIndex = 0;
@@ -80,15 +100,23 @@ class QuizProvider extends ChangeNotifier {
 
     final shuffled = List<CardModel>.from(cards)..shuffle();
     _questions = shuffled.map((card) {
+      final correctAnswer =
+          (direction == 'en-uz' ? card.translation : card.word).trim();
+
+      // Collect distinct wrong answers that do not duplicate the correct answer
+      final wrongAnswerSet = <String>{};
       final others = cards.where((c) => c.id != card.id).toList()..shuffle();
-      final wrongCards = others.take(3).toList();
+      for (final other in others) {
+        final ans =
+            (direction == 'en-uz' ? other.translation : other.word).trim();
+        if (ans.isNotEmpty &&
+            ans.toLowerCase() != correctAnswer.toLowerCase()) {
+          wrongAnswerSet.add(ans);
+          if (wrongAnswerSet.length == 3) break;
+        }
+      }
 
-      final correctAnswer = direction == 'en-uz' ? card.translation : card.word;
-      final wrongAnswers = wrongCards
-          .map((c) => direction == 'en-uz' ? c.translation : c.word)
-          .toList();
-
-      final options = [correctAnswer, ...wrongAnswers]..shuffle();
+      final options = [correctAnswer, ...wrongAnswerSet]..shuffle();
 
       return QuizQuestion(
         card: card,
@@ -121,14 +149,13 @@ class QuizProvider extends ChangeNotifier {
     final q = currentQuestion!;
     _selectedAnswer = '';
     _isAnswered = true;
-    _results.add(QuizResultItem(
-      card: q.card,
-      selectedAnswer: '',
-      isCorrect: false,
-    ));
+    _results.add(
+      QuizResultItem(card: q.card, selectedAnswer: '', isCorrect: false),
+    );
     notifyListeners();
 
-    Future.delayed(const Duration(milliseconds: 1200), () {
+    _advanceTimer?.cancel();
+    _advanceTimer = Timer(const Duration(milliseconds: 1200), () {
       _nextQuestion();
     });
   }
@@ -142,14 +169,17 @@ class QuizProvider extends ChangeNotifier {
     _selectedAnswer = option;
     _isAnswered = true;
 
-    _results.add(QuizResultItem(
-      card: q.card,
-      selectedAnswer: option,
-      isCorrect: isCorrect,
-    ));
+    _results.add(
+      QuizResultItem(
+        card: q.card,
+        selectedAnswer: option,
+        isCorrect: isCorrect,
+      ),
+    );
     notifyListeners();
 
-    Future.delayed(const Duration(milliseconds: 1200), () {
+    _advanceTimer?.cancel();
+    _advanceTimer = Timer(const Duration(milliseconds: 1200), () {
       _nextQuestion();
     });
   }
@@ -176,23 +206,23 @@ class QuizProvider extends ChangeNotifier {
       final now = DateTime.now().toIso8601String();
 
       // 1. Batch insert reviews
-      final reviewRows = _results.map((r) => {
-        'id': const Uuid().v4(),
-        'user_id': userId,
-        'card_id': r.card.id,
-        'rating': r.isCorrect ? 2 : 0,
-        'reviewed_at': now,
-      }).toList();
+      final reviewRows = _results
+          .map(
+            (r) => {
+              'id': const Uuid().v4(),
+              'user_id': userId,
+              'card_id': r.card.id,
+              'rating': r.isCorrect ? 2 : 0,
+              'reviewed_at': now,
+            },
+          )
+          .toList();
 
       OfflineQueueService.instance.queuedWrite(
-        QueuedOp(
-          kind: OpKind.insert,
-          table: 'reviews',
-          rows: reviewRows,
-        ),
+        QueuedOp(kind: OpKind.insert, table: 'reviews', rows: reviewRows),
       );
 
-      // 2. Update card stats
+      // 2. Update card stats in DB and local cache
       for (final r in _results) {
         OfflineQueueService.instance.queuedWrite(
           QueuedOp(
@@ -206,6 +236,13 @@ class QuizProvider extends ChangeNotifier {
             },
           ),
         );
+
+        final updatedCard = r.card.copyWith(
+          totalReviews: r.card.totalReviews + 1,
+          correctReviews: r.card.correctReviews + (r.isCorrect ? 1 : 0),
+          updatedAt: DateTime.tryParse(now),
+        );
+        CacheService.instance.updateSingleCachedCard(updatedCard);
       }
       OfflineQueueService.instance.flushQueue();
     }
@@ -218,6 +255,7 @@ class QuizProvider extends ChangeNotifier {
   @override
   void dispose() {
     _timer?.cancel();
+    _advanceTimer?.cancel();
     super.dispose();
   }
 }

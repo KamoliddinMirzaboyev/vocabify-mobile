@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+
 import '../core/constants/app_colors.dart';
-import '../core/services/offline_queue_service.dart';
 import '../providers/auth_provider.dart';
 import '../providers/decks_provider.dart';
 import '../providers/cards_provider.dart';
 import '../providers/stats_provider.dart';
 import 'home/home_screen.dart';
 import 'decks/decks_screen.dart';
-import 'speaking/speaking_screen.dart';
 import 'stats/stats_screen.dart';
 import 'profile/profile_screen.dart';
+import 'battle/battle_hub_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   final int initialIndex;
@@ -22,19 +23,13 @@ class MainNavigationScreen extends StatefulWidget {
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   late int _currentIndex;
-
-  final List<Widget> _screens = const [
-    HomeScreen(),
-    DecksScreen(),
-    SpeakingScreen(),
-    StatsScreen(),
-    ProfileScreen(),
-  ];
+  final List<Widget?> _screens = List<Widget?>.filled(5, null);
 
   @override
   void initState() {
     super.initState();
-    _currentIndex = widget.initialIndex;
+    _currentIndex = widget.initialIndex.clamp(0, _screens.length - 1);
+    _screens[_currentIndex] = _buildScreen(_currentIndex);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final user = context.read<AuthProvider>().user;
@@ -46,57 +41,33 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     });
   }
 
+  void _onTabSelected(int index) {
+    if (_currentIndex == index) return;
+    HapticFeedback.selectionClick();
+    setState(() {
+      _currentIndex = index;
+      _screens[index] ??= _buildScreen(index);
+    });
+  }
+
+  Widget _buildScreen(int index) => switch (index) {
+    0 => const HomeScreen(),
+    1 => const DecksScreen(),
+    2 => const BattleHubScreen(),
+    3 => const StatsScreen(),
+    _ => const ProfileScreen(),
+  };
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      body: Column(
-        children: [
-          // Offline Sync Indicator Bar
-          ValueListenableBuilder<int>(
-            valueListenable: OfflineQueueService.instance.pendingCountNotifier,
-            builder: (context, count, _) {
-              if (count == 0) return const SizedBox.shrink();
-              return Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
-                color: AppColors.accent.withValues(alpha: 0.9),
-                child: SafeArea(
-                  bottom: false,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const SizedBox(
-                        width: 12,
-                        height: 12,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Sinxronizatsiya kutilmoqda ($count ta yozuv)...',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-          Expanded(
-            child: IndexedStack(
-              index: _currentIndex,
-              children: _screens,
-            ),
-          ),
-        ],
+      body: SmoothIndexedStack(
+        index: _currentIndex,
+        children: _screens
+            .map((screen) => screen ?? const SizedBox.shrink())
+            .toList(growable: false),
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
@@ -123,7 +94,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               children: [
                 _buildNavItem(0, Icons.home_rounded, 'Bosh sahifa'),
                 _buildNavItem(1, Icons.auto_stories_rounded, 'To\'plam'),
-                _buildNavItem(2, Icons.forum_rounded, 'Speaking'),
+                _buildNavItem(2, Icons.sports_martial_arts_rounded, 'Battle'),
                 _buildNavItem(3, Icons.bar_chart_rounded, 'Statistika'),
                 _buildNavItem(4, Icons.person_rounded, 'Profil'),
               ],
@@ -138,22 +109,37 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     final isSelected = _currentIndex == index;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final activeColor = isDark ? AppColors.brandDark : AppColors.brand;
-    final inactiveColor = isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted;
+    final inactiveColor = isDark
+        ? AppColors.darkTextMuted
+        : AppColors.lightTextMuted;
 
     return InkWell(
-      onTap: () => setState(() => _currentIndex = index),
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      onTap: () => _onTabSelected(index),
+      borderRadius: BorderRadius.circular(16),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? activeColor.withValues(alpha: isDark ? 0.18 : 0.10)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              size: 24,
-              color: isSelected ? activeColor : inactiveColor,
+            AnimatedScale(
+              scale: isSelected ? 1.08 : 1.0,
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOutBack,
+              child: Icon(
+                icon,
+                size: 22,
+                color: isSelected ? activeColor : inactiveColor,
+              ),
             ),
-            const SizedBox(height: 3),
+            const SizedBox(height: 2),
             Text(
               label,
               style: TextStyle(
@@ -164,6 +150,74 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// A lightweight, silky smooth IndexedStack that performs a subtle fade and
+/// micro-slide when changing tabs without discarding in-memory state.
+class SmoothIndexedStack extends StatefulWidget {
+  final int index;
+  final List<Widget> children;
+  final Duration duration;
+
+  const SmoothIndexedStack({
+    super.key,
+    required this.index,
+    required this.children,
+    this.duration = const Duration(milliseconds: 200),
+  });
+
+  @override
+  State<SmoothIndexedStack> createState() => _SmoothIndexedStackState();
+}
+
+class _SmoothIndexedStackState extends State<SmoothIndexedStack>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
+  late int _currentIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.index;
+    _controller = AnimationController(vsync: this, duration: widget.duration);
+    _fadeAnimation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutCubic,
+    );
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.015),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+    _controller.forward();
+  }
+
+  @override
+  void didUpdateWidget(SmoothIndexedStack oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.index != oldWidget.index) {
+      _currentIndex = widget.index;
+      _controller.forward(from: 0.0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _fadeAnimation,
+      child: SlideTransition(
+        position: _slideAnimation,
+        child: IndexedStack(index: _currentIndex, children: widget.children),
       ),
     );
   }

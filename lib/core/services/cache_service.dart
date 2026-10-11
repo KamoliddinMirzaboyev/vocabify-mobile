@@ -1,11 +1,12 @@
 import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../../models/card_model.dart';
 import '../../models/deck_model.dart';
 import '../../models/profile_model.dart';
 import '../../models/stats_data_model.dart';
-import '../constants/app_constants.dart';
 
 class CacheService {
   static final CacheService instance = CacheService._internal();
@@ -16,9 +17,20 @@ class CacheService {
   static const String _keyAllCards = 'vocabify_cache_all_cards_v2';
   static const String _keyDeckCardsPrefix = 'vocabify_cache_deck_cards_v2_';
   static const String _keyStats = 'vocabify_cache_stats_v2';
-  static const String _keyCustomGroq = 'vocabify_custom_groq_key';
 
   SharedPreferences? _prefs;
+  String? _activeUserId;
+
+  /// Switches all cache reads/writes to an isolated user namespace.
+  void activateUser(String? userId) {
+    _activeUserId = userId;
+  }
+
+  String _scopedKey(String base) => '${base}_${_activeUserId ?? 'signed_out'}';
+  String _scopedKeyFor(String base, String? userId) =>
+      '${base}_${userId ?? 'signed_out'}';
+  String _deckCardsKey(String deckId) =>
+      '$_keyDeckCardsPrefix${_activeUserId ?? 'signed_out'}_$deckId';
 
   Future<SharedPreferences> _getPrefs() async {
     _prefs ??= await SharedPreferences.getInstance();
@@ -30,7 +42,7 @@ class CacheService {
     try {
       final prefs = await _getPrefs();
       final jsonStr = jsonEncode(profile.toJson());
-      await prefs.setString(_keyProfile, jsonStr);
+      await prefs.setString(_scopedKey(_keyProfile), jsonStr);
     } catch (e) {
       debugPrint('Error caching profile: $e');
     }
@@ -39,7 +51,7 @@ class CacheService {
   Future<ProfileModel?> getCachedProfile() async {
     try {
       final prefs = await _getPrefs();
-      final raw = prefs.getString(_keyProfile);
+      final raw = prefs.getString(_scopedKey(_keyProfile));
       if (raw == null || raw.isEmpty) return null;
       final map = jsonDecode(raw) as Map<String, dynamic>;
       return ProfileModel.fromJson(map);
@@ -54,7 +66,7 @@ class CacheService {
     try {
       final prefs = await _getPrefs();
       final list = decks.map((d) => d.toJson()).toList();
-      await prefs.setString(_keyDecks, jsonEncode(list));
+      await prefs.setString(_scopedKey(_keyDecks), jsonEncode(list));
     } catch (e) {
       debugPrint('Error caching decks: $e');
     }
@@ -63,10 +75,12 @@ class CacheService {
   Future<List<DeckModel>> getCachedDecks() async {
     try {
       final prefs = await _getPrefs();
-      final raw = prefs.getString(_keyDecks);
+      final raw = prefs.getString(_scopedKey(_keyDecks));
       if (raw == null || raw.isEmpty) return [];
       final list = jsonDecode(raw) as List;
-      return list.map((e) => DeckModel.fromJson(e as Map<String, dynamic>)).toList();
+      return list
+          .map((e) => DeckModel.fromJson(e as Map<String, dynamic>))
+          .toList();
     } catch (e) {
       debugPrint('Error reading cached decks: $e');
       return [];
@@ -78,7 +92,7 @@ class CacheService {
     try {
       final prefs = await _getPrefs();
       final list = cards.map((c) => c.toJson()).toList();
-      await prefs.setString(_keyAllCards, jsonEncode(list));
+      await prefs.setString(_scopedKey(_keyAllCards), jsonEncode(list));
     } catch (e) {
       debugPrint('Error caching all cards: $e');
     }
@@ -87,10 +101,12 @@ class CacheService {
   Future<List<CardModel>> getCachedAllCards() async {
     try {
       final prefs = await _getPrefs();
-      final raw = prefs.getString(_keyAllCards);
+      final raw = prefs.getString(_scopedKey(_keyAllCards));
       if (raw == null || raw.isEmpty) return [];
       final list = jsonDecode(raw) as List;
-      return list.map((e) => CardModel.fromJson(e as Map<String, dynamic>)).toList();
+      return list
+          .map((e) => CardModel.fromJson(e as Map<String, dynamic>))
+          .toList();
     } catch (e) {
       debugPrint('Error reading cached all cards: $e');
       return [];
@@ -102,7 +118,7 @@ class CacheService {
     try {
       final prefs = await _getPrefs();
       final list = cards.map((c) => c.toJson()).toList();
-      await prefs.setString('$_keyDeckCardsPrefix$deckId', jsonEncode(list));
+      await prefs.setString(_deckCardsKey(deckId), jsonEncode(list));
     } catch (e) {
       debugPrint('Error caching deck cards for $deckId: $e');
     }
@@ -111,13 +127,24 @@ class CacheService {
   Future<List<CardModel>> getCachedDeckCards(String deckId) async {
     try {
       final prefs = await _getPrefs();
-      final raw = prefs.getString('$_keyDeckCardsPrefix$deckId');
+      final raw = prefs.getString(_deckCardsKey(deckId));
       if (raw == null || raw.isEmpty) return [];
       final list = jsonDecode(raw) as List;
-      return list.map((e) => CardModel.fromJson(e as Map<String, dynamic>)).toList();
+      return list
+          .map((e) => CardModel.fromJson(e as Map<String, dynamic>))
+          .toList();
     } catch (e) {
       debugPrint('Error reading cached deck cards for $deckId: $e');
       return [];
+    }
+  }
+
+  Future<void> removeDeckCardsCache(String deckId) async {
+    try {
+      final prefs = await _getPrefs();
+      await prefs.remove(_deckCardsKey(deckId));
+    } catch (e) {
+      debugPrint('Error removing deck cards cache for $deckId: $e');
     }
   }
 
@@ -165,9 +192,12 @@ class CacheService {
           'good': stats.ratingCounts.good,
           'easy': stats.ratingCounts.easy,
         },
-        'last7': stats.last7.map((e) => {'date': e.date, 'count': e.count}).toList(),
+        'last7': stats.last7
+            .map((e) => {'date': e.date, 'count': e.count})
+            .toList(),
+        'troubleWords': stats.troubleWords.map((e) => e.toJson()).toList(),
       };
-      await prefs.setString(_keyStats, jsonEncode(map));
+      await prefs.setString(_scopedKey(_keyStats), jsonEncode(map));
     } catch (e) {
       debugPrint('Error caching stats: $e');
     }
@@ -176,12 +206,13 @@ class CacheService {
   Future<StatsDataModel?> getCachedStats() async {
     try {
       final prefs = await _getPrefs();
-      final raw = prefs.getString(_keyStats);
+      final raw = prefs.getString(_scopedKey(_keyStats));
       if (raw == null || raw.isEmpty) return null;
       final map = jsonDecode(raw) as Map<String, dynamic>;
 
       final ratingMap = map['ratingCounts'] as Map<String, dynamic>?;
       final last7List = (map['last7'] as List?) ?? [];
+      final troubleList = (map['troubleWords'] as List?) ?? [];
 
       return StatsDataModel(
         streak: (map['streak'] as num?)?.toInt() ?? 0,
@@ -203,10 +234,15 @@ class CacheService {
           easy: (ratingMap?['easy'] as num?)?.toInt() ?? 0,
         ),
         last7: last7List
-            .map((e) => DailyCount(
-                  date: e['date'] as String? ?? '',
-                  count: (e['count'] as num?)?.toInt() ?? 0,
-                ))
+            .map(
+              (e) => DailyCount(
+                date: e['date'] as String? ?? '',
+                count: (e['count'] as num?)?.toInt() ?? 0,
+              ),
+            )
+            .toList(),
+        troubleWords: troubleList
+            .map((e) => TroubleCardItem.fromJson(e as Map<String, dynamic>))
             .toList(),
       );
     } catch (e) {
@@ -215,42 +251,29 @@ class CacheService {
     }
   }
 
-  // ================= GROQ API KEY CONFIG =================
-  Future<String> getEffectiveGroqApiKey() async {
-    try {
-      final prefs = await _getPrefs();
-      final custom = prefs.getString(_keyCustomGroq);
-      if (custom != null && custom.trim().isNotEmpty) {
-        return custom.trim();
-      }
-    } catch (_) {}
-    return AppConstants.groqApiKey;
-  }
-
-  Future<void> setCustomGroqApiKey(String? key) async {
-    try {
-      final prefs = await _getPrefs();
-      if (key == null || key.trim().isEmpty) {
-        await prefs.remove(_keyCustomGroq);
-      } else {
-        await prefs.setString(_keyCustomGroq, key.trim());
-      }
-    } catch (e) {
-      debugPrint('Error saving custom groq key: $e');
-    }
-  }
-
   // ================= CLEAR USER CACHE ON LOGOUT =================
-  Future<void> clearUserCache() async {
+  Future<void> clearUserCache({String? userId}) async {
     try {
       final prefs = await _getPrefs();
+      final targetUserId = userId ?? _activeUserId;
+      await prefs.remove(_scopedKeyFor(_keyProfile, targetUserId));
+      await prefs.remove(_scopedKeyFor(_keyDecks, targetUserId));
+      await prefs.remove(_scopedKeyFor(_keyAllCards, targetUserId));
+      await prefs.remove(_scopedKeyFor(_keyStats, targetUserId));
+
+      // Remove legacy unscoped keys left by older app versions.
       await prefs.remove(_keyProfile);
       await prefs.remove(_keyDecks);
       await prefs.remove(_keyAllCards);
       await prefs.remove(_keyStats);
 
       // Remove all deck cards keys
-      final keys = prefs.getKeys().where((k) => k.startsWith(_keyDeckCardsPrefix)).toList();
+      final userDeckPrefix =
+          '$_keyDeckCardsPrefix${targetUserId ?? 'signed_out'}_';
+      final keys = prefs
+          .getKeys()
+          .where((key) => key.startsWith(userDeckPrefix))
+          .toList();
       for (final k in keys) {
         await prefs.remove(k);
       }

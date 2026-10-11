@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../core/constants/app_colors.dart';
 import '../../providers/auth_provider.dart';
+import '../main_navigation_screen.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -10,7 +12,8 @@ class AuthScreen extends StatefulWidget {
   State<AuthScreen> createState() => _AuthScreenState();
 }
 
-class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateMixin {
+class _AuthScreenState extends State<AuthScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final _signInFormKey = GlobalKey<FormState>();
   final _signUpFormKey = GlobalKey<FormState>();
@@ -63,6 +66,10 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
             behavior: SnackBarBehavior.floating,
           ),
         );
+      } else {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
+        );
       }
     }
   }
@@ -95,6 +102,9 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
             backgroundColor: AppColors.success,
             behavior: SnackBarBehavior.floating,
           ),
+        );
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
         );
       }
     }
@@ -131,7 +141,9 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                       style: TextStyle(
                         fontSize: 32,
                         fontWeight: FontWeight.bold,
-                        color: isDark ? AppColors.darkText : AppColors.lightText,
+                        color: isDark
+                            ? AppColors.darkText
+                            : AppColors.lightText,
                       ),
                       children: const [
                         TextSpan(
@@ -147,7 +159,9 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 14,
-                      color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                      color: isDark
+                          ? AppColors.darkTextMuted
+                          : AppColors.lightTextMuted,
                     ),
                   ),
                   const SizedBox(height: 28),
@@ -158,11 +172,15 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                       color: isDark ? AppColors.darkCard : AppColors.lightCard,
                       borderRadius: BorderRadius.circular(24),
                       border: Border.all(
-                        color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                        color: isDark
+                            ? AppColors.darkBorder
+                            : AppColors.lightBorder,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
+                          color: Colors.black.withValues(
+                            alpha: isDark ? 0.3 : 0.06,
+                          ),
                           blurRadius: 20,
                           offset: const Offset(0, 8),
                         ),
@@ -174,7 +192,9 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                         // Tab Selector
                         Container(
                           decoration: BoxDecoration(
-                            color: isDark ? AppColors.darkSecondary : AppColors.lightSecondary,
+                            color: isDark
+                                ? AppColors.darkSecondary
+                                : AppColors.lightSecondary,
                             borderRadius: BorderRadius.circular(14),
                           ),
                           child: TabBar(
@@ -190,7 +210,9 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                                 ),
                               ],
                             ),
-                            labelColor: isDark ? Colors.white : AppColors.lightText,
+                            labelColor: isDark
+                                ? Colors.white
+                                : AppColors.lightText,
                             unselectedLabelColor: isDark
                                 ? AppColors.darkTextMuted
                                 : AppColors.lightTextMuted,
@@ -218,7 +240,8 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                               Form(
                                 key: _signInFormKey,
                                 child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
                                   children: [
                                     TextFormField(
                                       controller: _signInEmailController,
@@ -226,7 +249,10 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                                       decoration: const InputDecoration(
                                         labelText: 'Email',
                                         hintText: 'siz@example.com',
-                                        prefixIcon: Icon(Icons.email_outlined, size: 20),
+                                        prefixIcon: Icon(
+                                          Icons.email_outlined,
+                                          size: 20,
+                                        ),
                                       ),
                                       validator: (v) {
                                         if (v == null || v.trim().isEmpty) {
@@ -245,7 +271,10 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                                       decoration: InputDecoration(
                                         labelText: 'Parol',
                                         hintText: '••••••••',
-                                        prefixIcon: const Icon(Icons.lock_outline, size: 20),
+                                        prefixIcon: const Icon(
+                                          Icons.lock_outline,
+                                          size: 20,
+                                        ),
                                         suffixIcon: IconButton(
                                           icon: Icon(
                                             _obscureSignInPass
@@ -254,20 +283,30 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                                             size: 20,
                                           ),
                                           onPressed: () => setState(
-                                              () => _obscureSignInPass = !_obscureSignInPass),
+                                            () => _obscureSignInPass =
+                                                !_obscureSignInPass,
+                                          ),
                                         ),
                                       ),
                                       validator: (v) {
-                                        if (v == null || v.isEmpty) return 'Parol kiriting';
-                                        if (v.length < 8) return 'Kamida 8 ta belgi';
+                                        if (v == null || v.isEmpty) {
+                                          return 'Parol kiriting';
+                                        }
+                                        if (v.length < 8) {
+                                          return 'Kamida 8 ta belgi';
+                                        }
                                         return null;
                                       },
                                     ),
                                     const Spacer(),
                                     ElevatedButton(
-                                      onPressed: _isSubmitting ? null : _handleSignIn,
+                                      onPressed: _isSubmitting
+                                          ? null
+                                          : _handleSignIn,
                                       style: ElevatedButton.styleFrom(
-                                        padding: const EdgeInsets.symmetric(vertical: 16),
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 16,
+                                        ),
                                       ),
                                       child: _isSubmitting
                                           ? const SizedBox(
@@ -288,14 +327,18 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                               Form(
                                 key: _signUpFormKey,
                                 child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
                                   children: [
                                     TextFormField(
                                       controller: _signUpNameController,
                                       decoration: const InputDecoration(
                                         labelText: 'Ismingiz',
                                         hintText: 'Aziz',
-                                        prefixIcon: Icon(Icons.person_outline, size: 20),
+                                        prefixIcon: Icon(
+                                          Icons.person_outline,
+                                          size: 20,
+                                        ),
                                       ),
                                     ),
                                     const SizedBox(height: 10),
@@ -305,7 +348,10 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                                       decoration: const InputDecoration(
                                         labelText: 'Email',
                                         hintText: 'siz@example.com',
-                                        prefixIcon: Icon(Icons.email_outlined, size: 20),
+                                        prefixIcon: Icon(
+                                          Icons.email_outlined,
+                                          size: 20,
+                                        ),
                                       ),
                                       validator: (v) {
                                         if (v == null || v.trim().isEmpty) {
@@ -324,7 +370,10 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                                       decoration: InputDecoration(
                                         labelText: 'Parol (kamida 8 belgi)',
                                         hintText: '••••••••',
-                                        prefixIcon: const Icon(Icons.lock_outline, size: 20),
+                                        prefixIcon: const Icon(
+                                          Icons.lock_outline,
+                                          size: 20,
+                                        ),
                                         suffixIcon: IconButton(
                                           icon: Icon(
                                             _obscureSignUpPass
@@ -333,20 +382,30 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                                             size: 20,
                                           ),
                                           onPressed: () => setState(
-                                              () => _obscureSignUpPass = !_obscureSignUpPass),
+                                            () => _obscureSignUpPass =
+                                                !_obscureSignUpPass,
+                                          ),
                                         ),
                                       ),
                                       validator: (v) {
-                                        if (v == null || v.isEmpty) return 'Parol kiriting';
-                                        if (v.length < 8) return 'Kamida 8 ta belgi';
+                                        if (v == null || v.isEmpty) {
+                                          return 'Parol kiriting';
+                                        }
+                                        if (v.length < 8) {
+                                          return 'Kamida 8 ta belgi';
+                                        }
                                         return null;
                                       },
                                     ),
                                     const Spacer(),
                                     ElevatedButton(
-                                      onPressed: _isSubmitting ? null : _handleSignUp,
+                                      onPressed: _isSubmitting
+                                          ? null
+                                          : _handleSignUp,
                                       style: ElevatedButton.styleFrom(
-                                        padding: const EdgeInsets.symmetric(vertical: 16),
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 16,
+                                        ),
                                       ),
                                       child: _isSubmitting
                                           ? const SizedBox(
@@ -358,9 +417,13 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                                               ),
                                             )
                                           : const Row(
-                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
                                               children: [
-                                                Icon(Icons.auto_awesome_rounded, size: 18),
+                                                Icon(
+                                                  Icons.auto_awesome_rounded,
+                                                  size: 18,
+                                                ),
                                                 SizedBox(width: 8),
                                                 Text('Boshlash'),
                                               ],

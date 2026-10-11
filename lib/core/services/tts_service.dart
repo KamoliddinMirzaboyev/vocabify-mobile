@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
@@ -9,6 +10,8 @@ class TtsService {
   final FlutterTts _tts = FlutterTts();
   bool _initialized = false;
   bool _isPlayingSequence = false;
+
+  int _sequenceId = 0;
 
   final ValueNotifier<bool> isPlayingNotifier = ValueNotifier<bool>(false);
   final ValueNotifier<int> currentIndexNotifier = ValueNotifier<int>(-1);
@@ -27,7 +30,11 @@ class TtsService {
     }
   }
 
-  Future<void> speak(String text, {String lang = 'en-US', double rate = 0.5}) async {
+  Future<void> speak(
+    String text, {
+    String lang = 'en-US',
+    double rate = 0.5,
+  }) async {
     if (!_initialized) await initialize();
     try {
       await _tts.stop();
@@ -40,6 +47,7 @@ class TtsService {
   }
 
   Future<void> stop() async {
+    _sequenceId++;
     _isPlayingSequence = false;
     isPlayingNotifier.value = false;
     currentIndexNotifier.value = -1;
@@ -59,11 +67,12 @@ class TtsService {
     if (!_initialized) await initialize();
     await stop();
 
+    final currentId = ++_sequenceId;
     _isPlayingSequence = true;
     isPlayingNotifier.value = true;
 
     for (int i = 0; i < words.length; i++) {
-      if (!_isPlayingSequence) break;
+      if (!_isPlayingSequence || _sequenceId != currentId) break;
 
       currentIndexNotifier.value = i;
       onIndexChanged(i);
@@ -73,17 +82,17 @@ class TtsService {
       final uz = item['translation'] ?? '';
 
       // 1. Speak English
-      if (en.isNotEmpty && _isPlayingSequence) {
+      if (en.isNotEmpty && _isPlayingSequence && _sequenceId == currentId) {
         await _tts.setLanguage('en-US');
         await _tts.setSpeechRate(0.48);
         await _tts.speak(en);
       }
 
-      if (!_isPlayingSequence) break;
+      if (!_isPlayingSequence || _sequenceId != currentId) break;
       await Future.delayed(const Duration(milliseconds: 700));
 
       // 2. Speak Translation
-      if (uz.isNotEmpty && _isPlayingSequence) {
+      if (uz.isNotEmpty && _isPlayingSequence && _sequenceId == currentId) {
         try {
           await _tts.setLanguage('tr-TR'); // Closest speech engine for Uzbek
           await _tts.setSpeechRate(0.52);
@@ -94,11 +103,11 @@ class TtsService {
         }
       }
 
-      if (!_isPlayingSequence) break;
+      if (!_isPlayingSequence || _sequenceId != currentId) break;
       await Future.delayed(const Duration(milliseconds: 1400));
     }
 
-    if (_isPlayingSequence) {
+    if (_isPlayingSequence && _sequenceId == currentId) {
       _isPlayingSequence = false;
       isPlayingNotifier.value = false;
       currentIndexNotifier.value = -1;

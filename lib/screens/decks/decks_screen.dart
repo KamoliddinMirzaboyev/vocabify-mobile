@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../core/constants/app_colors.dart';
 import '../../models/deck_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/decks_provider.dart';
+import '../../widgets/skeleton/app_skeleton.dart';
 import '../bulk_import/bulk_import_screen.dart';
 import 'deck_detail_screen.dart';
 
@@ -15,8 +17,23 @@ class DecksScreen extends StatefulWidget {
   State<DecksScreen> createState() => _DecksScreenState();
 }
 
-class _DecksScreenState extends State<DecksScreen> {
-  final List<String> _icons = ["📚", "🎓", "💼", "🗣️", "✈️", "🍽️", "💻", "🎬", "🌍", "❤️"];
+class _DecksScreenState extends State<DecksScreen>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  final List<String> _icons = [
+    "📚",
+    "🎓",
+    "💼",
+    "🗣️",
+    "✈️",
+    "🍽️",
+    "💻",
+    "🎬",
+    "🌍",
+    "❤️",
+  ];
   final List<String> _colors = ["violet", "amber", "emerald", "rose", "sky"];
 
   @override
@@ -29,14 +46,14 @@ class _DecksScreenState extends State<DecksScreen> {
     }
   }
 
-  void _showCreateDeckModal() {
+  Future<void> _showCreateDeckModal() async {
     final nameController = TextEditingController();
     final descController = TextEditingController();
     String selectedIcon = "📚";
     String selectedColor = "violet";
     bool isSubmitting = false;
 
-    showModalBottomSheet(
+    await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -53,7 +70,9 @@ class _DecksScreenState extends State<DecksScreen> {
             ),
             decoration: BoxDecoration(
               color: isDark ? AppColors.darkCard : Colors.white,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(28),
+              ),
             ),
             child: SingleChildScrollView(
               child: Column(
@@ -65,7 +84,10 @@ class _DecksScreenState extends State<DecksScreen> {
                     children: [
                       const Text(
                         'Yangi to\'plam',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       IconButton(
                         icon: const Icon(Icons.close_rounded),
@@ -116,12 +138,19 @@ class _DecksScreenState extends State<DecksScreen> {
                           height: 44,
                           decoration: BoxDecoration(
                             color: isSelected
-                                ? (isDark ? AppColors.brandDark : AppColors.brand)
-                                : (isDark ? AppColors.darkSecondary : AppColors.lightSecondary),
+                                ? (isDark
+                                      ? AppColors.brandDark
+                                      : AppColors.brand)
+                                : (isDark
+                                      ? AppColors.darkSecondary
+                                      : AppColors.lightSecondary),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           alignment: Alignment.center,
-                          child: Text(icon, style: const TextStyle(fontSize: 22)),
+                          child: Text(
+                            icon,
+                            style: const TextStyle(fontSize: 22),
+                          ),
                         ),
                       );
                     }).toList(),
@@ -141,7 +170,8 @@ class _DecksScreenState extends State<DecksScreen> {
                       return Padding(
                         padding: const EdgeInsets.only(right: 12),
                         child: InkWell(
-                          onTap: () => setModalState(() => selectedColor = colorKey),
+                          onTap: () =>
+                              setModalState(() => selectedColor = colorKey),
                           customBorder: const CircleBorder(),
                           child: Container(
                             width: 36,
@@ -158,7 +188,7 @@ class _DecksScreenState extends State<DecksScreen> {
                                         color: col.withValues(alpha: 0.6),
                                         blurRadius: 8,
                                         spreadRadius: 1,
-                                      )
+                                      ),
                                     ]
                                   : null,
                             ),
@@ -184,15 +214,18 @@ class _DecksScreenState extends State<DecksScreen> {
 
                             final messenger = ScaffoldMessenger.of(context);
                             setModalState(() => isSubmitting = true);
-                            final userId = context.read<AuthProvider>().user?.id;
+                            final userId = context
+                                .read<AuthProvider>()
+                                .user
+                                ?.id;
                             if (userId != null) {
                               await context.read<DecksProvider>().createDeck(
-                                    userId: userId,
-                                    name: name,
-                                    description: descController.text.trim(),
-                                    icon: selectedIcon,
-                                    color: selectedColor,
-                                  );
+                                userId: userId,
+                                name: name,
+                                description: descController.text.trim(),
+                                icon: selectedIcon,
+                                color: selectedColor,
+                              );
                             }
 
                             if (ctx.mounted) {
@@ -225,10 +258,13 @@ class _DecksScreenState extends State<DecksScreen> {
         },
       ),
     );
+    nameController.dispose();
+    descController.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final decksProv = context.watch<DecksProvider>();
     final decks = decksProv.decks;
@@ -245,9 +281,11 @@ class _DecksScreenState extends State<DecksScreen> {
               );
             },
             icon: const Icon(Icons.file_upload_outlined, size: 18),
-            label: const Text('Import'),
+            label: const Text('JSON import'),
             style: TextButton.styleFrom(
-              foregroundColor: isDark ? AppColors.darkText : AppColors.lightText,
+              foregroundColor: isDark
+                  ? AppColors.darkText
+                  : AppColors.lightText,
             ),
           ),
           IconButton(
@@ -258,7 +296,10 @@ class _DecksScreenState extends State<DecksScreen> {
           const SizedBox(width: 8),
         ],
       ),
-      body: decks.isEmpty
+      body:
+          (decks.isEmpty && (decksProv.isInitialLoading || decksProv.isLoading))
+          ? const DecksScreenSkeleton()
+          : decks.isEmpty
           ? Center(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(24),
@@ -269,14 +310,19 @@ class _DecksScreenState extends State<DecksScreen> {
                     const SizedBox(height: 16),
                     const Text(
                       'Hech qanday to\'plam yo\'q',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       'Boshlash uchun yangi to\'plam yarating',
                       style: TextStyle(
                         fontSize: 14,
-                        color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                        color: isDark
+                            ? AppColors.darkTextMuted
+                            : AppColors.lightTextMuted,
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -285,7 +331,10 @@ class _DecksScreenState extends State<DecksScreen> {
                       icon: const Icon(Icons.add, size: 20),
                       label: const Text('Birinchi to\'plamni yaratish'),
                       style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 14,
+                        ),
                       ),
                     ),
                   ],
@@ -295,12 +344,16 @@ class _DecksScreenState extends State<DecksScreen> {
           : RefreshIndicator(
               onRefresh: () async {
                 final userId = context.read<AuthProvider>().user?.id;
-                await context.read<DecksProvider>().loadDecks(userId);
+                await context.read<DecksProvider>().loadDecks(
+                  userId,
+                  force: true,
+                );
               },
               child: ListView.separated(
                 padding: const EdgeInsets.all(16),
                 itemCount: decks.length,
-                separatorBuilder: (context, index) => const SizedBox(height: 12),
+                separatorBuilder: (context, index) =>
+                    const SizedBox(height: 12),
                 itemBuilder: (context, index) {
                   final deck = decks[index];
                   return _buildDeckCard(context, deck);
@@ -359,10 +412,7 @@ class _DecksScreenState extends State<DecksScreen> {
                 ],
               ),
               alignment: Alignment.center,
-              child: Text(
-                deck.icon,
-                style: const TextStyle(fontSize: 24),
-              ),
+              child: Text(deck.icon, style: const TextStyle(fontSize: 24)),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -385,7 +435,9 @@ class _DecksScreenState extends State<DecksScreen> {
                         : '${deck.cardCount} ta so\'z',
                     style: TextStyle(
                       fontSize: 13,
-                      color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                      color: isDark
+                          ? AppColors.darkTextMuted
+                          : AppColors.lightTextMuted,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -393,7 +445,11 @@ class _DecksScreenState extends State<DecksScreen> {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 24),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: Colors.grey,
+              size: 24,
+            ),
           ],
         ),
       ),

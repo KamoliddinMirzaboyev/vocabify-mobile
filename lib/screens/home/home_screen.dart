@@ -1,20 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../core/constants/app_colors.dart';
-import '../../core/utils/srs.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/decks_provider.dart';
 import '../../providers/cards_provider.dart';
 import '../../providers/stats_provider.dart';
+import '../../widgets/skeleton/app_skeleton.dart';
 import '../study/study_screen.dart';
 import '../decks/decks_screen.dart';
 import '../decks/deck_detail_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
   Widget build(BuildContext context) {
+    super.build(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final auth = context.watch<AuthProvider>();
     final decksProv = context.watch<DecksProvider>();
@@ -26,21 +37,29 @@ class HomeScreen extends StatelessWidget {
     final allCards = cardsProv.allCards;
     final stats = statsProv.stats;
 
-    // Calculate due cards today
-    final today = SrsAlgorithm.todayISO();
-    final dueToday = allCards.where((c) => c.dueDate.compareTo(today) <= 0).length;
+    // Show full-page shimmer skeleton when initial load has no cache yet
+    if ((decksProv.isInitialLoading || cardsProv.isAllCardsInitialLoading) &&
+        decks.isEmpty &&
+        allCards.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Asosiy')),
+        body: const HomeScreenSkeleton(),
+      );
+    }
 
-    // Calculate accuracy and mastered
-    final totalReviews = allCards.fold<int>(0, (sum, c) => sum + c.totalReviews);
-    final correctReviews = allCards.fold<int>(0, (sum, c) => sum + c.correctReviews);
-    final accuracy = totalReviews > 0 ? ((correctReviews / totalReviews) * 100).round() : 0;
-    final mastered = allCards
-        .where((c) => c.repetitions >= 3 && c.dueDate.compareTo(today) > 0)
-        .length;
+    // StatsProvider computes these once when data changes. Keeping the
+    // aggregation out of build avoids scanning every card on unrelated UI
+    // updates (theme, profile, loading state).
+    final dueToday = stats.dueToday;
+    final accuracy = stats.accuracy;
+    final mastered = stats.mastered;
 
     final dailyGoal = profile?.dailyGoal ?? 20;
     final reviewsToday = stats.reviewsToday;
-    final goalProgress = (reviewsToday / (dailyGoal > 0 ? dailyGoal : 1)).clamp(0.0, 1.0);
+    final goalProgress = (reviewsToday / (dailyGoal > 0 ? dailyGoal : 1)).clamp(
+      0.0,
+      1.0,
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -51,9 +70,9 @@ class HomeScreen extends StatelessWidget {
             onPressed: () {
               if (auth.user != null) {
                 auth.loadProfile();
-                decksProv.loadDecks(auth.user!.id);
-                cardsProv.loadAllCards(auth.user!.id);
-                statsProv.loadStats(auth.user!.id);
+                decksProv.loadDecks(auth.user!.id, force: true);
+                cardsProv.loadAllCards(auth.user!.id, force: true);
+                statsProv.loadStats(auth.user!.id, force: true);
               }
             },
           ),
@@ -64,9 +83,9 @@ class HomeScreen extends StatelessWidget {
           if (auth.user != null) {
             await Future.wait([
               auth.loadProfile(),
-              decksProv.loadDecks(auth.user!.id),
-              cardsProv.loadAllCards(auth.user!.id),
-              statsProv.loadStats(auth.user!.id),
+              decksProv.loadDecks(auth.user!.id, force: true),
+              cardsProv.loadAllCards(auth.user!.id, force: true),
+              statsProv.loadStats(auth.user!.id, force: true),
             ]);
           }
         },
@@ -189,14 +208,25 @@ class HomeScreen extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: LinearProgressIndicator(
-                        value: goalProgress,
-                        minHeight: 10,
-                        backgroundColor: Colors.white.withValues(alpha: 0.2),
-                        valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-                      ),
+                    TweenAnimationBuilder<double>(
+                      tween: Tween<double>(begin: 0.0, end: goalProgress),
+                      duration: const Duration(milliseconds: 700),
+                      curve: Curves.easeOutCubic,
+                      builder: (context, value, _) {
+                        return ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: LinearProgressIndicator(
+                            value: value,
+                            minHeight: 10,
+                            backgroundColor: Colors.white.withValues(
+                              alpha: 0.2,
+                            ),
+                            valueColor: const AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -212,7 +242,8 @@ class HomeScreen extends StatelessWidget {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => const StudyScreen(startInTypingMode: false),
+                            builder: (_) =>
+                                const StudyScreen(startInTypingMode: false),
                           ),
                         );
                       },
@@ -233,7 +264,11 @@ class HomeScreen extends StatelessWidget {
                         child: const Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.trending_up_rounded, color: Colors.white, size: 28),
+                            Icon(
+                              Icons.trending_up_rounded,
+                              color: Colors.white,
+                              size: 28,
+                            ),
                             SizedBox(height: 6),
                             Text(
                               'Takrorlash',
@@ -255,7 +290,8 @@ class HomeScreen extends StatelessWidget {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => const StudyScreen(startInTypingMode: true),
+                            builder: (_) =>
+                                const StudyScreen(startInTypingMode: true),
                           ),
                         );
                       },
@@ -266,7 +302,9 @@ class HomeScreen extends StatelessWidget {
                           color: isDark ? AppColors.darkCard : Colors.white,
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                            color: isDark
+                                ? AppColors.darkBorder
+                                : AppColors.lightBorder,
                             width: 1.5,
                           ),
                         ),
@@ -275,14 +313,18 @@ class HomeScreen extends StatelessWidget {
                           children: [
                             Icon(
                               Icons.keyboard_rounded,
-                              color: isDark ? Colors.white : AppColors.lightText,
+                              color: isDark
+                                  ? Colors.white
+                                  : AppColors.lightText,
                               size: 28,
                             ),
                             const SizedBox(height: 6),
                             Text(
                               'Yozib yodlash',
                               style: TextStyle(
-                                color: isDark ? Colors.white : AppColors.lightText,
+                                color: isDark
+                                    ? Colors.white
+                                    : AppColors.lightText,
                                 fontSize: 15,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -352,7 +394,9 @@ class HomeScreen extends StatelessWidget {
                   color: isDark ? AppColors.darkCard : Colors.white,
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(
-                    color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                    color: isDark
+                        ? AppColors.darkBorder
+                        : AppColors.lightBorder,
                   ),
                 ),
                 padding: const EdgeInsets.all(18),
@@ -390,22 +434,76 @@ class HomeScreen extends StatelessWidget {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => const DecksScreen(openCreateModalOnInit: true),
+                                builder: (_) => const DecksScreen(
+                                  openCreateModalOnInit: true,
+                                ),
                               ),
                             );
                           },
                           icon: const Icon(Icons.add, size: 16),
                           label: const Text('Yangi'),
                           style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            textStyle: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 14),
 
-                    if (decks.isEmpty)
+                    if (decks.isEmpty && decksProv.isLoading)
+                      AppShimmer(
+                        child: Column(
+                          children: List.generate(
+                            2,
+                            (i) => Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: isDark
+                                      ? AppColors.darkSecondary
+                                      : AppColors.lightSecondary,
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: const Row(
+                                  children: [
+                                    SkeletonBox(
+                                      width: 44,
+                                      height: 44,
+                                      borderRadius: 12,
+                                    ),
+                                    SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          SkeletonLine(width: 130, height: 15),
+                                          SizedBox(height: 6),
+                                          SkeletonLine(width: 60, height: 12),
+                                        ],
+                                      ),
+                                    ),
+                                    SkeletonBox(
+                                      width: 18,
+                                      height: 18,
+                                      borderRadius: 6,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      )
+                    else if (decks.isEmpty)
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 24),
                         child: Center(
@@ -429,7 +527,8 @@ class HomeScreen extends StatelessWidget {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => DeckDetailScreen(deckId: d.id),
+                                  builder: (_) =>
+                                      DeckDetailScreen(deckId: d.id),
                                 ),
                               );
                             },
@@ -438,8 +537,12 @@ class HomeScreen extends StatelessWidget {
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
                                 color: isDark
-                                    ? AppColors.darkSecondary.withValues(alpha: 0.5)
-                                    : AppColors.lightSecondary.withValues(alpha: 0.6),
+                                    ? AppColors.darkSecondary.withValues(
+                                        alpha: 0.5,
+                                      )
+                                    : AppColors.lightSecondary.withValues(
+                                        alpha: 0.6,
+                                      ),
                                 borderRadius: BorderRadius.circular(16),
                               ),
                               child: Row(
@@ -448,7 +551,9 @@ class HomeScreen extends StatelessWidget {
                                     width: 44,
                                     height: 44,
                                     decoration: BoxDecoration(
-                                      color: isDark ? AppColors.darkCard : Colors.white,
+                                      color: isDark
+                                          ? AppColors.darkCard
+                                          : Colors.white,
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     alignment: Alignment.center,
@@ -460,7 +565,8 @@ class HomeScreen extends StatelessWidget {
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           d.name,
@@ -484,7 +590,11 @@ class HomeScreen extends StatelessWidget {
                                       ],
                                     ),
                                   ),
-                                  const Icon(Icons.chevron_right, size: 20, color: Colors.grey),
+                                  const Icon(
+                                    Icons.chevron_right,
+                                    size: 20,
+                                    color: Colors.grey,
+                                  ),
                                 ],
                               ),
                             ),
@@ -499,7 +609,9 @@ class HomeScreen extends StatelessWidget {
                         onPressed: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (_) => const DecksScreen()),
+                            MaterialPageRoute(
+                              builder: (_) => const DecksScreen(),
+                            ),
                           );
                         },
                         child: const Text('Barcha to\'plamlarni ko\'rish'),
@@ -561,7 +673,9 @@ class HomeScreen extends StatelessWidget {
                   value,
                   style: TextStyle(
                     fontSize: 11,
-                    color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                    color: isDark
+                        ? AppColors.darkTextMuted
+                        : AppColors.lightTextMuted,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

@@ -3,8 +3,8 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
-  gtk
-  record_linux
+  app_links_linux
+  flutter_timezone
   url_launcher_linux
 )
 

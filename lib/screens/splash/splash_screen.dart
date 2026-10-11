@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../core/constants/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/decks_provider.dart';
 import '../../providers/cards_provider.dart';
 import '../../providers/stats_provider.dart';
-import '../auth/auth_screen.dart';
-import '../main_navigation_screen.dart';
+import '../../main.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -15,7 +15,8 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
   late AnimationController _animController;
   late Animation<double> _scaleAnimation;
   late Animation<double> _fadeAnimation;
@@ -64,25 +65,30 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   Future<void> _startBootSequence() async {
     final startTime = DateTime.now();
 
-    // 1. Preload cached data while splash is showing
     final auth = context.read<AuthProvider>();
     final decksProv = context.read<DecksProvider>();
     final cardsProv = context.read<CardsProvider>();
     final statsProv = context.read<StatsProvider>();
 
-    // Wait until auth initialization check completes
-    while (auth.isLoading) {
-      await Future.delayed(const Duration(milliseconds: 50));
-    }
+    try {
+      // 1. Wait until auth initialization check completes (max 1.5s)
+      int waited = 0;
+      while (auth.isLoading && waited < 1500) {
+        await Future.delayed(const Duration(milliseconds: 50));
+        waited += 50;
+      }
 
-    final user = auth.user;
-    if (user != null) {
-      // Warm up caches in memory
-      await Future.wait([
-        decksProv.loadDecks(user.id),
-        cardsProv.loadAllCards(user.id),
-        statsProv.loadStats(user.id),
-      ]);
+      final user = auth.user;
+      if (user != null) {
+        // Warm up caches in memory without blocking past 1.5s
+        await Future.wait([
+          decksProv.loadDecks(user.id),
+          cardsProv.loadAllCards(user.id),
+          statsProv.loadStats(user.id),
+        ]).timeout(const Duration(milliseconds: 1500), onTimeout: () => []);
+      }
+    } catch (e) {
+      debugPrint('Boot sequence warmup notice: $e');
     }
 
     // Ensure splash displays for at least 1400ms for a smooth brand impression
@@ -94,12 +100,11 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
     if (!mounted) return;
 
-    // Smooth fade navigation
-    final nextScreen = auth.isAuthenticated ? const MainNavigationScreen() : const AuthScreen();
-
+    // Smooth fade navigation to reactive AuthGate
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) => nextScreen,
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            const AuthGate(),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(opacity: animation, child: child);
         },
@@ -121,14 +126,8 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: isDark
-                ? [
-                    const Color(0xFF0F172A),
-                    const Color(0xFF090D16),
-                  ]
-                : [
-                    const Color(0xFFF8FAFC),
-                    const Color(0xFFEEF2F6),
-                  ],
+                ? [const Color(0xFF0F172A), const Color(0xFF090D16)]
+                : [const Color(0xFFF8FAFC), const Color(0xFFEEF2F6)],
           ),
         ),
         child: SafeArea(
@@ -158,7 +157,9 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                     borderRadius: BorderRadius.circular(28),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.brand.withValues(alpha: isDark ? 0.35 : 0.2),
+                        color: AppColors.brand.withValues(
+                          alpha: isDark ? 0.35 : 0.2,
+                        ),
                         blurRadius: 32,
                         spreadRadius: 4,
                         offset: const Offset(0, 10),
@@ -173,11 +174,12 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                       errorBuilder: (context, error, stackTrace) => Image.asset(
                         'assets/images/app_icon.png',
                         fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) => const Icon(
-                          Icons.menu_book_rounded,
-                          size: 56,
-                          color: AppColors.brand,
-                        ),
+                        errorBuilder: (context, error, stackTrace) =>
+                            const Icon(
+                              Icons.menu_book_rounded,
+                              size: 56,
+                              color: AppColors.brand,
+                            ),
                       ),
                     ),
                   ),
@@ -215,7 +217,10 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                         ),
                         const SizedBox(width: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             gradient: const LinearGradient(
                               colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
@@ -240,7 +245,9 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
-                        color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                        color: isDark
+                            ? const Color(0xFF94A3B8)
+                            : const Color(0xFF64748B),
                         letterSpacing: 0.2,
                       ),
                     ),
@@ -271,7 +278,9 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w500,
-                        color: isDark ? const Color(0xFF475569) : const Color(0xFF94A3B8),
+                        color: isDark
+                            ? const Color(0xFF475569)
+                            : const Color(0xFF94A3B8),
                         letterSpacing: 0.4,
                       ),
                     ),

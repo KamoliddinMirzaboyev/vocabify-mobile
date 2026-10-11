@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
+
 import '../core/services/supabase_service.dart';
 import '../core/services/offline_queue_service.dart';
 import '../core/services/cache_service.dart';
@@ -52,13 +53,32 @@ class StudyProvider extends ChangeNotifier {
   String? get exitAnim => _exitAnim;
 
   CardModel? get currentCard =>
-      (_currentIndex >= 0 && _currentIndex < _queue.length) ? _queue[_currentIndex] : null;
+      (_currentIndex >= 0 && _currentIndex < _queue.length)
+      ? _queue[_currentIndex]
+      : null;
 
-  bool get isFinished => !_isLoading && (_queue.isEmpty || _currentIndex >= _queue.length);
+  bool get isFinished =>
+      !_isLoading && (_queue.isEmpty || _currentIndex >= _queue.length);
   int get totalDone => _countAgain + _countHard + _countGood + _countEasy;
   int get accuracy => totalDone > 0
-      ? (((_countGood + _countEasy + _countHard * 0.5) / totalDone) * 100).round()
+      ? (((_countGood + _countEasy + _countHard * 0.5) / totalDone) * 100)
+            .round()
       : 0;
+
+  void clear() {
+    _queue = [];
+    _currentIndex = 0;
+    _isFlipped = false;
+    _isLoading = false;
+    _countAgain = 0;
+    _countHard = 0;
+    _countGood = 0;
+    _countEasy = 0;
+    _exitAnim = null;
+    _resetTyping();
+    TtsService.instance.stop();
+    notifyListeners();
+  }
 
   Future<void> initSession({
     required String userId,
@@ -66,7 +86,6 @@ class StudyProvider extends ChangeNotifier {
     bool startInTypingMode = false,
     bool forceAllCards = false,
   }) async {
-    _isLoading = true;
     _currentIndex = 0;
     _isFlipped = false;
     _isTypingMode = startInTypingMode;
@@ -75,11 +94,36 @@ class StudyProvider extends ChangeNotifier {
     _countGood = 0;
     _countEasy = 0;
     _resetTyping();
-    notifyListeners();
+
+    final today = SrsAlgorithm.todayISO();
+    List<CardModel> localCards = [];
+    if (deckId != null && deckId.isNotEmpty) {
+      localCards = await CacheService.instance.getCachedDeckCards(deckId);
+    } else {
+      localCards = await CacheService.instance.getCachedAllCards();
+    }
+
+    if (localCards.isNotEmpty) {
+      if (forceAllCards) {
+        _queue = localCards;
+      } else {
+        final dueCards = localCards
+            .where((c) => c.dueDate.compareTo(today) <= 0)
+            .toList();
+        _queue = dueCards.isNotEmpty ? dueCards : localCards;
+      }
+      _isLoading = false;
+      notifyListeners();
+    } else {
+      _isLoading = true;
+      notifyListeners();
+    }
 
     try {
-      final today = SrsAlgorithm.todayISO();
-      var filter = SupabaseService.client.from('cards').select('*').eq('user_id', userId);
+      var filter = SupabaseService.client
+          .from('cards')
+          .select('*')
+          .eq('user_id', userId);
 
       if (!forceAllCards) {
         filter = filter.lte('due_date', today);
@@ -89,24 +133,27 @@ class StudyProvider extends ChangeNotifier {
         filter = filter.eq('deck_id', deckId);
       }
 
-      final res = await filter.order('due_date', ascending: true).limit(100);
-      final list = (res as List).map((e) => CardModel.fromJson(e as Map<String, dynamic>)).toList();
+      final res = await filter
+          .order('due_date', ascending: true)
+          .limit(100)
+          .timeout(const Duration(seconds: 2));
+      final list = (res as List)
+          .map((e) => CardModel.fromJson(e as Map<String, dynamic>))
+          .toList();
       _queue = list;
     } catch (e) {
-      debugPrint('Error initializing study session from Supabase, loading from cache: $e');
-      final today = SrsAlgorithm.todayISO();
-      List<CardModel> localCards = [];
-      if (deckId != null && deckId.isNotEmpty) {
-        localCards = await CacheService.instance.getCachedDeckCards(deckId);
-      } else {
-        localCards = await CacheService.instance.getCachedAllCards();
-      }
-
-      if (forceAllCards) {
-        _queue = localCards;
-      } else {
-        final dueCards = localCards.where((c) => c.dueDate.compareTo(today) <= 0).toList();
-        _queue = dueCards.isNotEmpty ? dueCards : localCards;
+      debugPrint(
+        'Error or timeout initializing study session from Supabase, relying on cache: $e',
+      );
+      if (_queue.isEmpty) {
+        if (forceAllCards) {
+          _queue = localCards;
+        } else {
+          final dueCards = localCards
+              .where((c) => c.dueDate.compareTo(today) <= 0)
+              .toList();
+          _queue = dueCards.isNotEmpty ? dueCards : localCards;
+        }
       }
     } finally {
       _isLoading = false;
@@ -166,7 +213,12 @@ class StudyProvider extends ChangeNotifier {
     return Rating.good;
   }
 
-  Future<void> rate(Rating rating, {required String userId, ProfileModel? currentProfile}) async {
+  Future<void> rate(
+    Rating rating, {
+    required String userId,
+    ProfileModel? currentProfile,
+    void Function(ProfileModel updatedProfile)? onProfileUpdated,
+  }) async {
     final card = currentCard;
     if (card == null) return;
 
@@ -230,7 +282,7 @@ class StudyProvider extends ChangeNotifier {
             'card_id': card.id,
             'rating': rating.value,
             'reviewed_at': now,
-          }
+          },
         ],
       ),
     );
@@ -264,11 +316,19 @@ class StudyProvider extends ChangeNotifier {
 
     // If finished session, update streak
     if (_currentIndex >= _queue.length) {
-      _updateStreakAfterSession(userId, currentProfile);
+      _updateStreakAfterSession(
+        userId,
+        currentProfile,
+        onProfileUpdated: onProfileUpdated,
+      );
     }
   }
 
-  void _updateStreakAfterSession(String userId, ProfileModel? profile) {
+  void _updateStreakAfterSession(
+    String userId,
+    ProfileModel? profile, {
+    void Function(ProfileModel updatedProfile)? onProfileUpdated,
+  }) {
     if (profile == null) return;
     final today = SrsAlgorithm.todayISO();
     if (profile.lastStudyDate == today) return;
@@ -276,10 +336,20 @@ class StudyProvider extends ChangeNotifier {
     final yesterday = DateTime.now().subtract(const Duration(days: 1));
     final yISO = DateFormat('yyyy-MM-dd').format(yesterday);
 
-    final isConsecutive = profile.lastStudyDate != null &&
-        profile.lastStudyDate == yISO;
+    final isConsecutive =
+        profile.lastStudyDate != null && profile.lastStudyDate == yISO;
     final newStreak = isConsecutive ? profile.currentStreak + 1 : 1;
-    final longestStreak = newStreak > profile.longestStreak ? newStreak : profile.longestStreak;
+    final longestStreak = newStreak > profile.longestStreak
+        ? newStreak
+        : profile.longestStreak;
+
+    final updatedProfile = profile.copyWith(
+      currentStreak: newStreak,
+      longestStreak: longestStreak,
+      lastStudyDate: today,
+    );
+    CacheService.instance.cacheProfile(updatedProfile);
+    onProfileUpdated?.call(updatedProfile);
 
     OfflineQueueService.instance.queuedWrite(
       QueuedOp(

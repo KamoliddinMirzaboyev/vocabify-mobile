@@ -66,6 +66,12 @@ void main() {
   });
 
   group('Model Serialization Tests', () {
+    test('Profile query uses columns that exist in the backend schema', () {
+      expect(ProfileModel.databaseColumns, contains('last_study_date'));
+      expect(ProfileModel.databaseColumns, isNot(contains('last_active_date')));
+      expect(ProfileModel.databaseColumns, isNot(contains('email')));
+    });
+
     test('DeckModel serialization round-trip', () {
       final now = DateTime.now();
       final deck = DeckModel(

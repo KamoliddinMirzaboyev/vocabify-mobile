@@ -40,20 +40,21 @@ Vocabify PWA ilovasining to'liq 1:1 formatda Flutterda yaratilgan zamonaviy mobi
 - To'g'ri/noto'g'ri javoblarni yashil va qizil rangda bir zumda ko'rsatish
 - Natijalar oynasi: Foiz ko'rsatkichi, baholash emojisi (🏆, 🎉, 👍, 📚), to'liq javoblar tahlili, qayta boshlash
 
-### 6. 🎙️ AI Speaking Practice Partner
-- **IELTS B1-B2 imtihon oluvchi (examiner)** bilan real vaqtda ovozli suhbat
-- Jonli mikrofon yozuvi va to'lqinli pulsatsiya animatsiyasi
-- **Groq Whisper Large v3 Turbo**: Ovozni bir zumda aniq matnga o'girish (STT)
-- **Groq Llama 3.3 70B Versatile**: IELTS formatidagi kontekstli, ixcham va savolli javoblar
-- Imtihon oluvchi javobini avtomatik audio ovozda o'qib berish (TTS)
-
-### 7. 📊 Statistika & Haftalik Grafika
+### 6. 📊 Statistika & Haftalik Grafika
 - Joriy streak (olov belgisi) va eng uzun streak
 - Kunlik maqsad bajarilish progress bari
 - Bugun takrorlanadigan, o'rganilayotgan va mustahkam o'zlashtirilgan so'zlar hisobi
+- **Ko'p xato qilingan so'zlar**: Qiyin so'zlarni alohida aniqlash va tahlil qilish
 - **So'nggi 7 kunlik faoliyat**: `fl_chart` asosidagi interaktiv ustunli grafik
 - O'zlashtirish bosqichlari (Yangi, O'rganilmoqda, Mustahkam)
 - Baholash taqsimoti (Yana, Qiyin, Yaxshi, Oson)
+
+### 7. ⚔️ Asinxron Word Battle
+- Bir xil 10 ta savol bilan 24 soatlik 1v1 duel
+- Har savolga 10 soniya va tezlikka bog'liq 0–1000 ball
+- Javoblar faqat serverdagi Supabase RPC orqali tekshiriladi
+- Raqibni aniq email yoki profil ekranidagi foydalanuvchi ID orqali topish
+- Your Turn, Pending va Finished holatlari hamda ochiq challenge'lar
 
 ### 8. 📦 JSON Import & Export
 - Ko'p so'zlarni bir vaqtda JSON orqali yuklash
@@ -88,9 +89,8 @@ Vocabify app/
 │   │   ├── services/
 │   │   │   ├── supabase_service.dart
 │   │   │   ├── offline_queue_service.dart
-│   │   │   ├── tts_service.dart
-│   │   │   ├── groq_service.dart
-│   │   │   └── audio_recorder_service.dart
+│   │   │   ├── cache_service.dart
+│   │   │   └── tts_service.dart
 │   │   └── utils/
 │   │       ├── srs.dart
 │   │       └── helpers.dart
@@ -107,7 +107,10 @@ Vocabify app/
 │   │   ├── cards_provider.dart
 │   │   ├── study_provider.dart
 │   │   ├── quiz_provider.dart
-│   │   └── stats_provider.dart
+│   │   ├── stats_provider.dart
+│   │   └── duel_provider.dart
+│   ├── repositories/
+│   │   └── duel_repository.dart
 │   └── screens/
 │       ├── auth/
 │       │   └── auth_screen.dart
@@ -124,12 +127,14 @@ Vocabify app/
 │       │   ├── quiz_setup_screen.dart
 │       │   ├── quiz_play_screen.dart
 │       │   └── quiz_results_screen.dart
-│       ├── speaking/
-│       │   └── speaking_screen.dart
 │       ├── stats/
 │       │   └── stats_screen.dart
 │       ├── profile/
 │       │   └── profile_screen.dart
+│       ├── battle/
+│       │   ├── battle_hub_screen.dart
+│       │   ├── word_battle_screen.dart
+│       │   └── word_battle_result_screen.dart
 │       └── bulk_import/
 │           └── bulk_import_screen.dart
 ├── assets/
@@ -137,6 +142,8 @@ Vocabify app/
 │       ├── hero-study.png
 │       ├── vocabifylogo.png
 │       └── app_icon.png
+├── supabase/
+│   └── migrations/
 └── pubspec.yaml
 ```
 
@@ -146,21 +153,27 @@ Vocabify app/
 
 1. Bog'liqliklarni o'rnatish:
    ```bash
-   cd "/Users/kamoliddin/Desktop/Vocabify app"
+   cd "/Users/kamoliddin/Desktop/Loyihalar/Vocabify app"
    flutter pub get
    ```
 
-2. Ilovani emulyator yoki qurilmada ishga tushirish:
+2. Supabase loyihasini link qilib migratsiyalarni qo'llash:
+   ```bash
+   npx supabase link --project-ref YOUR_PROJECT_REF
+   npx supabase db push
+   ```
+
+3. Ilovani emulyator yoki qurilmada ishga tushirish:
    ```bash
    flutter run
    ```
 
-3. APK yaratish (Android):
+4. APK yaratish (Android):
    ```bash
    flutter build apk --release
    ```
 
-4. iOS uchun yig'ish:
+5. iOS uchun yig'ish:
    ```bash
    flutter build ios --release
    ```

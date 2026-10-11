@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../core/constants/app_colors.dart';
 import '../../core/services/tts_service.dart';
 import '../../models/card_model.dart';
@@ -29,10 +30,10 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<QuizProvider>().initQuiz(
-            deck: widget.deck,
-            cards: widget.cards,
-            direction: widget.direction,
-          );
+        deck: widget.deck,
+        cards: widget.cards,
+        direction: widget.direction,
+      );
     });
   }
 
@@ -55,22 +56,22 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
           ),
         );
       });
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     final q = quiz.currentQuestion;
     if (q == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    final questionWord =
-        quiz.direction == 'en-uz' ? q.card.word : q.card.translation;
+    final questionWord = quiz.direction == 'en-uz'
+        ? q.card.word
+        : q.card.translation;
     final optionLabels = ['A', 'B', 'C', 'D'];
-    final progress = ((quiz.currentIndex + 1) / quiz.questions.length).clamp(0.0, 1.0);
+    final progress = ((quiz.currentIndex + 1) / quiz.questions.length).clamp(
+      0.0,
+      1.0,
+    );
     final isUrgentTime = quiz.timeLeft <= 10;
 
     return Scaffold(
@@ -89,7 +90,9 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: isDark ? AppColors.darkSecondary : AppColors.lightSecondary,
+                color: isDark
+                    ? AppColors.darkSecondary
+                    : AppColors.lightSecondary,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
@@ -97,7 +100,9 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
-                  color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                  color: isDark
+                      ? AppColors.darkTextMuted
+                      : AppColors.lightTextMuted,
                 ),
               ),
             ),
@@ -131,81 +136,118 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
         child: Column(
           children: [
             // Linear Progress Bar
-            LinearProgressIndicator(
-              value: progress,
-              minHeight: 4,
-              backgroundColor: isDark ? AppColors.darkSecondary : AppColors.lightSecondary,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                isDark ? AppColors.brandDark : AppColors.brand,
-              ),
+            TweenAnimationBuilder<double>(
+              tween: Tween<double>(begin: 0.0, end: progress),
+              duration: const Duration(milliseconds: 320),
+              curve: Curves.easeOutCubic,
+              builder: (context, val, _) {
+                return LinearProgressIndicator(
+                  value: val,
+                  minHeight: 4,
+                  backgroundColor: isDark
+                      ? AppColors.darkSecondary
+                      : AppColors.lightSecondary,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    isDark ? AppColors.brandDark : AppColors.brand,
+                  ),
+                );
+              },
             ),
 
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Question Card
-                    Container(
-                      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-                      decoration: BoxDecoration(
-                        color: isDark ? AppColors.darkCard : Colors.white,
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(
-                          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                    // Question Card with smooth slide & fade transition
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      switchInCurve: Curves.easeOutCubic,
+                      switchOutCurve: Curves.easeInCubic,
+                      transitionBuilder: (child, anim) {
+                        return FadeTransition(
+                          opacity: anim,
+                          child: SlideTransition(
+                            position: Tween<Offset>(
+                              begin: const Offset(0.08, 0.0),
+                              end: Offset.zero,
+                            ).animate(anim),
+                            child: child,
+                          ),
+                        );
+                      },
+                      child: Container(
+                        key: ValueKey(q.card.id),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 24,
+                          horizontal: 20,
                         ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
+                        decoration: BoxDecoration(
+                          color: isDark ? AppColors.darkCard : Colors.white,
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(
+                            color: isDark
+                                ? AppColors.darkBorder
+                                : AppColors.lightBorder,
                           ),
-                        ],
-                      ),
-                      child: Column(
-                        children: [
-                          Text(
-                            quiz.direction == 'en-uz'
-                                ? 'TARJIMASINI TOPING'
-                                : 'BU NIMA DEGANI?',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1,
-                              color: isDark
-                                  ? AppColors.darkTextMuted
-                                  : AppColors.lightTextMuted,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(
+                                alpha: isDark ? 0.2 : 0.05,
+                              ),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
                             ),
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Flexible(
-                                child: Text(
-                                  questionWord,
-                                  style: const TextStyle(
-                                    fontSize: 26,
-                                    fontWeight: FontWeight.bold,
+                          ],
+                        ),
+                        child: Column(
+                          children: [
+                            Text(
+                              quiz.direction == 'en-uz'
+                                  ? 'TARJIMASINI TOPING'
+                                  : 'BU NIMA DEGANI?',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1,
+                                color: isDark
+                                    ? AppColors.darkTextMuted
+                                    : AppColors.lightTextMuted,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    questionWord,
+                                    style: const TextStyle(
+                                      fontSize: 26,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    textAlign: TextAlign.center,
                                   ),
-                                  textAlign: TextAlign.center,
                                 ),
-                              ),
-                              const SizedBox(width: 8),
-                              IconButton(
-                                icon: const Icon(Icons.volume_up_rounded),
-                                color: AppColors.brandDark,
-                                onPressed: () {
-                                  final speakWord = quiz.direction == 'en-uz'
-                                      ? q.card.word
-                                      : q.card.translation;
-                                  TtsService.instance.speak(speakWord);
-                                },
-                              ),
-                            ],
-                          ),
-                        ],
+                                const SizedBox(width: 8),
+                                IconButton(
+                                  icon: const Icon(Icons.volume_up_rounded),
+                                  color: AppColors.brandDark,
+                                  onPressed: () {
+                                    final speakWord = quiz.direction == 'en-uz'
+                                        ? q.card.word
+                                        : q.card.translation;
+                                    TtsService.instance.speak(speakWord);
+                                  },
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -232,7 +274,9 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
                             size: 22,
                           );
                         } else if (isSelected) {
-                          bgColor = AppColors.destructive.withValues(alpha: 0.15);
+                          bgColor = AppColors.destructive.withValues(
+                            alpha: 0.15,
+                          );
                           borderColor = AppColors.destructive;
                           textColor = AppColors.destructive;
                           iconTrailing = const Icon(
@@ -244,67 +288,102 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
                           bgColor = isDark
                               ? AppColors.darkSecondary.withValues(alpha: 0.4)
                               : AppColors.lightSecondary.withValues(alpha: 0.5);
-                          borderColor = isDark ? AppColors.darkBorder : AppColors.lightBorder;
+                          borderColor = isDark
+                              ? AppColors.darkBorder
+                              : AppColors.lightBorder;
                         }
                       } else {
                         bgColor = isDark ? AppColors.darkCard : Colors.white;
-                        borderColor = isDark ? AppColors.darkBorder : AppColors.lightBorder;
+                        borderColor = isDark
+                            ? AppColors.darkBorder
+                            : AppColors.lightBorder;
                       }
 
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 10),
-                        child: InkWell(
-                          onTap: quiz.isAnswered ? null : () => quiz.selectOption(option),
-                          borderRadius: BorderRadius.circular(16),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                            decoration: BoxDecoration(
-                              color: bgColor,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: borderColor,
-                                width: (quiz.isAnswered && (isCorrect || isSelected)) ? 2 : 1,
+                        child: AnimatedScale(
+                          scale: isSelected ? 1.02 : 1.0,
+                          duration: const Duration(milliseconds: 200),
+                          curve: Curves.easeOutBack,
+                          child: InkWell(
+                            onTap: quiz.isAnswered
+                                ? null
+                                : () => quiz.selectOption(option),
+                            borderRadius: BorderRadius.circular(16),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 240),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 14,
                               ),
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 32,
-                                  height: 32,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: textColor ??
-                                          (isDark
-                                              ? AppColors.darkTextMuted
-                                              : AppColors.lightTextMuted),
-                                      width: 1.5,
-                                    ),
-                                  ),
-                                  alignment: Alignment.center,
-                                  child: Text(
-                                    optionLabels[i],
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.bold,
-                                      color: textColor,
-                                    ),
-                                  ),
+                              decoration: BoxDecoration(
+                                color: bgColor,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: borderColor,
+                                  width:
+                                      (quiz.isAnswered &&
+                                          (isCorrect || isSelected))
+                                      ? 2
+                                      : 1,
                                 ),
-                                const SizedBox(width: 14),
-                                Expanded(
-                                  child: Text(
-                                    option,
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w600,
-                                      color: textColor,
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 32,
+                                    height: 32,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color:
+                                            textColor ??
+                                            (isDark
+                                                ? AppColors.darkTextMuted
+                                                : AppColors.lightTextMuted),
+                                        width: 1.5,
+                                      ),
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      optionLabels[i],
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                        color: textColor,
+                                      ),
                                     ),
                                   ),
-                                ),
-                                ?iconTrailing,
-                              ],
+                                  const SizedBox(width: 14),
+                                  Expanded(
+                                    child: Text(
+                                      option,
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600,
+                                        color: textColor,
+                                      ),
+                                    ),
+                                  ),
+                                  if (iconTrailing != null)
+                                    TweenAnimationBuilder<double>(
+                                      tween: Tween<double>(
+                                        begin: 0.0,
+                                        end: 1.0,
+                                      ),
+                                      duration: const Duration(
+                                        milliseconds: 280,
+                                      ),
+                                      curve: Curves.elasticOut,
+                                      builder: (context, scaleVal, child) =>
+                                          Transform.scale(
+                                            scale: scaleVal,
+                                            child: child,
+                                          ),
+                                      child: iconTrailing,
+                                    ),
+                                ],
+                              ),
                             ),
                           ),
                         ),

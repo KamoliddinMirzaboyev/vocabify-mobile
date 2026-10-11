@@ -1,4 +1,8 @@
 class ProfileModel {
+  static const String databaseColumns =
+      'id, display_name, avatar_url, daily_goal, current_streak, '
+      'longest_streak, last_study_date, created_at, updated_at';
+
   final String id;
   final String? displayName;
   final String? avatarUrl;
@@ -30,8 +34,12 @@ class ProfileModel {
       currentStreak: json['current_streak'] as int? ?? 0,
       longestStreak: json['longest_streak'] as int? ?? 0,
       lastStudyDate: json['last_study_date'] as String?,
-      createdAt: json['created_at'] != null ? DateTime.tryParse(json['created_at']) : null,
-      updatedAt: json['updated_at'] != null ? DateTime.tryParse(json['updated_at']) : null,
+      createdAt: json['created_at'] != null
+          ? DateTime.tryParse(json['created_at'])
+          : null,
+      updatedAt: json['updated_at'] != null
+          ? DateTime.tryParse(json['updated_at'])
+          : null,
     );
   }
 
