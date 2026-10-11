@@ -201,6 +201,61 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
+  void _confirmDeleteAccount() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: AppColors.destructive, size: 26),
+            SizedBox(width: 8),
+            Text('Hisobni o\'chirish'),
+          ],
+        ),
+        content: const Text(
+          'Diqqat! Hisobingiz, barcha to\'plamlaringiz, so\'zlaringiz va statistikalaringiz butunlay o\'chiriladi.\n\nUshbu amalni ortga qaytarib bo\'lmaydi. Haqiqatan ham hisobingizni o\'chirmoqchimisiz?',
+          style: TextStyle(height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Bekor qilish'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              context.read<DecksProvider>().clear();
+              context.read<CardsProvider>().clear();
+              context.read<StatsProvider>().clear();
+              context.read<StudyProvider>().clear();
+              context.read<QuizProvider>().clear();
+              context.read<DuelProvider>().clear();
+              await context.read<AuthProvider>().deleteAccount();
+              if (mounted) {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const AuthScreen()),
+                  (route) => false,
+                );
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Hisobingiz va ma\'lumotlaringiz butunlay o\'chirildi.'),
+                    backgroundColor: AppColors.destructive,
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.destructive,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Ha, hisobimni o\'chirish'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showWidgetGuideDialog(BuildContext context, bool isDark) {
     showModalBottomSheet(
       context: context,
@@ -1081,6 +1136,29 @@ class _ProfileScreenState extends State<ProfileScreen>
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Delete Account Button (Google Play Policy Compliance)
+            Center(
+              child: TextButton.icon(
+                onPressed: _confirmDeleteAccount,
+                icon: Icon(
+                  Icons.delete_forever_rounded,
+                  size: 19,
+                  color: AppColors.destructive.withValues(alpha: 0.8),
+                ),
+                label: Text(
+                  'Hisobni butunlay o\'chirish',
+                  style: TextStyle(
+                    color: AppColors.destructive.withValues(alpha: 0.8),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    decoration: TextDecoration.underline,
+                    decorationColor: AppColors.destructive.withValues(alpha: 0.8),
+                  ),
                 ),
               ),
             ),

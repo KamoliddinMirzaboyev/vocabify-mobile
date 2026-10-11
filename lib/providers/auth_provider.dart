@@ -199,6 +199,40 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> deleteAccount() async {
+    _isLoading = true;
+    notifyListeners();
+    final deletingUserId = _user?.id;
+    ++_authGeneration;
+    try {
+      if (deletingUserId != null) {
+        await SupabaseService.client.rpc('delete_user_account');
+      }
+    } catch (e) {
+      debugPrint('delete_user_account rpc error: $e');
+      try {
+        if (deletingUserId != null) {
+          await SupabaseService.client
+              .from('profiles')
+              .delete()
+              .eq('id', deletingUserId);
+        }
+      } catch (_) {}
+    } finally {
+      try {
+        await SupabaseService.client.auth.signOut();
+      } catch (_) {}
+      await CacheService.instance.clearUserCache(userId: deletingUserId);
+      _user = null;
+      _session = null;
+      _profile = null;
+      CacheService.instance.activateUser(null);
+      await OfflineQueueService.instance.activateUser(null);
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   Future<bool> updateProfile({
     required String displayName,
     required int dailyGoal,

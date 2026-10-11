@@ -58,12 +58,12 @@ Ilova geolokatsiya, kamera, kontaktlar yoki mikrofon kabi shaxsiy ruxsatnomalarn
 
 ---
 
-## 5. Ma'lumotlarni O'chirish va Saqlash (Data Deletion)
+## 5. Ma'lumotlarni O'chirish va Saqlash (Account & Data Deletion)
 
-Foydalanuvchi istalgan vaqtda:
-- Profil sahifasidagi o'z ma'lumotlarini tahrirlashi;
-- Ilovadagi to'plamlar, kartalar va statistikasini tozalashi;
-- O'z hisobini to'liq o'chirishni so'rashi mumkin. Hisob o'chirilganda foydalanuvchiga tegishli barcha ma'lumotlar serverdan butunlay o'chiriladi.
+Google Play Store talablariga muvofiq, foydalanuvchilar o'z hisoblarini to'liq o'chirish huquqiga ega:
+- **Ilova ichida:** Foydalanuvchi istalgan vaqtda `Profil` bo'limiga kirib, **"Hisobni butunlay o'chirish"** tugmasini bosish orqali o'z hisobini, barcha to'plamlarini, kartalarini va o'rganish tarixini bir zumda butunlay o'chirishi mumkin.
+- **Masofaviy so'rov:** Shuningdek, foydalanuvchi `support@vocabify.uz` elektron pochtasiga xat yuborish orqali hisobini o'chirishni talab qilishi mumkin.
+- Hisob o'chirilganda, barcha shaxsiy ma'lumotlar server ma'lumotlar bazasidan qaytarib bo'lmas tarzda tozalanadi.
 
 ---
 
