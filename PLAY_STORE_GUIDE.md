@@ -47,42 +47,47 @@ Yig'ilgan fayl quyidagi yo'lda hosil bo'ladi:
 build/app/outputs/bundle/release/app-release.aab
 ```
 
-*Har safar yangi versiya chiqarganingizda `pubspec.yaml` dagi versiya raqamini oshiring (masalan: `version: 1.0.1+2`).*
+*Joriy versiya: `version: 1.0.3+4`*
+
+Tayyorlangan App Bundle fayli loyiha asosiy papkasida ham tayyorlab qo'yilgan:
+👉 `Vocabify.aab` (~57 MB)
 
 ---
 
 ## 4. Google Play Console Sozlamalari (Checklist)
 
 ### A. Ilova tafsilotlari (Main Store Listing):
-- **Ilova nomi (App name):** `Vocabify: So'z Yodlash & SRS`
+- **Ilova nomi (App name, max 30 belgi):** `Vocabify: So'z Yodlash & SRS`
 - **Qisqa tavsif (Short description, max 80 belgi):**
-  > Interaktiv kartalar, interval takrorlash (SM-2) va onlayn so'z janglari.
+  > Interaktiv kartalar, interval takrorlash (SM-2), vidjet va so'z janglari.
 - **To'liq tavsif (Full description):**
   > Vocabify — xorijiy tillardagi so'zlarni samarali va uzoq muddatli xotirada mustahkamlash uchun zamonaviy yordamchingiz!
   >
   > Asosiy imkoniyatlar:
   > • Ilmiy asoslangan SM-2 interval takrorlash (Spaced Repetition) tizimi;
+  > • 📱 Telefon bosh ekrani uchun interaktiv Vidjet (Kun so'zi va takrorlash);
+  > • ⚔️ Real vaqtda boshqa foydalanuvchilar bilan 1v1 "So'z jangi" (Word Battle);
   > • 3D flip kartochkalar va talaffuzni eshitish (TTS);
   > • Yozma mashqlar (Typing mode) va interaktiv testlar (Quiz);
-  > • Real vaqtda boshqa foydalanuvchilar bilan "So'z jangi" (Word Battle);
   > • Kunlik o'rganish statistikasi, qiyin so'zlar tahlili va streak hisobi;
   > • To'liq oflayn ishlash va internet paydo bo'lganda avtomatik sinxronlash;
   > • Excel/CSV yoki matndan so'zlarni ommaviy import qilish.
 
-### B. Grafik aktivlar (Graphics Assets):
-1. **Ilova belgisi (App Icon):** 512 x 512 px (32-bit PNG, alfa kanalsiz).
-2. **Asosiy reklama banneri (Feature Graphic):** 1024 x 500 px (JPG yoki 24-bit PNG).
-3. **Skrinshotlar (Phone Screenshots):** Kamida 4-6 ta skrinshot (16:9 yoki 18:9 nisbatda, masalan 1080 x 2400 px).
+### B. Grafik aktivlar (Graphics Assets — `play_store_assets/` papkasida tayyor):
+1. **Ilova belgisi (App Icon):** `play_store_assets/app_icon_512x512.png` (512 x 512 px PNG).
+2. **Asosiy reklama banneri (Feature Graphic):** `play_store_assets/feature_graphic_1024x500.jpg` (1024 x 500 px ultra-premium banner).
+3. **Skrinshotlar (Phone Screenshots):** Telefoningizda olingan 4-6 ta skrinshot (Bosh sahifa, Kartalar, Word Battle, Statistika).
 
 ### C. Maxfiylik siyosati (Privacy Policy):
-Play Console'da `App content` -> `Privacy policy` bo'limiga [PRIVACY_POLICY.md](./PRIVACY_POLICY.md) ning veb havolasini kiriting (masalan, GitHub raw yoki GitHub Pages havolasi).
+Play Console'da `App content` -> `Privacy policy` bo'limiga [PRIVACY_POLICY.md](./PRIVACY_POLICY.md) ning GitHub xomaki (raw) havolasini kiriting:
+`https://raw.githubusercontent.com/KamoliddinMirzaboyev/vocabify-mobile/main/PRIVACY_POLICY.md`
 
 ### D. Ma'lumotlar xavfsizligi (Data Safety Section):
 Play Console anketasida quyidagilarni belgilang:
-- **Ma'lumotlar to'planadimi?** Ha (Email, foydalanuvchi nomi, o'rganish statistikasi).
-- **Uchinchi shaxslarga beriladimi?** Yo'q (reklama tarmoqlari yo'q).
+- **Ma'lumotlar to'planadimi?** Ha (Email, foydalanuvchi nomi, o'rganish statistikasi — faqat hisob xavfsizligi va o'quv jarayoni uchun).
+- **Uchinchi shaxslarga beriladimi?** Yo'q (reklama tarmoqlari umuman yo'q).
 - **Shifrlanganmi?** Ha, barcha ma'lumotlar tranzitda shifrlangan (HTTPS/TLS).
-- **Hisobni o'chirish imkoniyati bormi?** Ha, ilova ichida yoki so'rov orqali.
+- **Hisobni o'chirish imkoniyati bormi?** Ha.
 
 ### E. Yosh toifasi (Content Rating):
 - IAPP / PEGI / ESRB anketasida so'rovnomani to'ldiring:
@@ -92,9 +97,10 @@ Play Console anketasida quyidagilarni belgilang:
 
 ---
 
-## 5. Yangilash va Deploy qilish
+## 5. Yuklash (Upload) Jarayoni
+1. Google Play Console oching: https://play.google.com/console
+2. **"Create app"** bosing -> `Vocabify: So'z Yodlash & SRS` nomini yozing.
+3. Chap menyudan **Production** (yoki **Internal testing**) bo'limiga kiring.
+4. **"Create new release"** tugmasini bosing va loyiha root papkasidagi `Vocabify.aab` faylini yuklang.
+5. Grafik aktivlar (`play_store_assets/`) va tavsiflarni to'ldirib, **"Send for review"** tugmasini bosing!
 
-Kelgusida yangilanishlarni yuklash:
-1. `pubspec.yaml` da versiyani oshirish: `1.0.1+2`
-2. `flutter build appbundle --release`
-3. Chiqqan `.aab` faylni Google Play Console -> **Production** (yoki **Internal Testing**) bo'limiga yuklash.
