@@ -39,11 +39,12 @@ class DuelRepository {
     String? opponentId,
   }) async {
     try {
+      final cleanOpponent = _emptyToNull(opponentId);
       final result = await _client.rpc(
         'create_duel',
         params: {
           'p_deck_id': deckId,
-          'p_opponent_id': _emptyToNull(opponentId),
+          'p_opponent_id': ?cleanOpponent,
         },
       );
       if (result is! String || result.isEmpty) {
