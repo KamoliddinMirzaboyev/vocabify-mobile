@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
@@ -6,6 +7,7 @@ import '../core/services/supabase_service.dart';
 import '../core/services/offline_queue_service.dart';
 import '../core/services/cache_service.dart';
 import '../core/services/tts_service.dart';
+import '../core/services/widget_service.dart';
 import '../core/utils/srs.dart';
 import '../core/utils/helpers.dart';
 import '../models/card_model.dart';
@@ -365,6 +367,9 @@ class StudyProvider extends ChangeNotifier {
       ),
     );
     OfflineQueueService.instance.flushQueue();
+    unawaited(
+      WidgetService.syncFromCardsAndStreak(cards: _queue, streak: newStreak),
+    );
   }
 
   void _resetTyping() {

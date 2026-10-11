@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Vocabify</string>
+    <string name="widget_name">Vocabify • Kun so\'zi</string>
+    <string name="widget_description">Kun so\'zi, talaffuz, tarjima va kunlik takrorlash holatini ko\'rsatuvchi vidjet.</string>
+</resources>

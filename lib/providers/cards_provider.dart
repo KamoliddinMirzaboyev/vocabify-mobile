@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 
 import '../core/services/supabase_service.dart';
 import '../core/services/offline_queue_service.dart';
 import '../core/services/cache_service.dart';
+import '../core/services/widget_service.dart';
 import '../core/utils/srs.dart';
 import '../models/card_model.dart';
 
@@ -176,6 +178,7 @@ class CardsProvider extends ChangeNotifier {
     } finally {
       _isAllCardsInitialLoading = false;
       notifyListeners();
+      unawaited(WidgetService.syncFromCards(_allCards));
     }
   }
 

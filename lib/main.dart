@@ -10,6 +10,7 @@ import 'core/services/supabase_service.dart';
 import 'core/services/cache_service.dart';
 import 'core/services/offline_queue_service.dart';
 import 'core/services/notification_service.dart';
+import 'core/services/widget_service.dart';
 import 'providers/auth_provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/decks_provider.dart';
@@ -89,6 +90,7 @@ Future<void> _initializeBackgroundServices(
     await Future.wait([
       OfflineQueueService.instance.initialize(),
       NotificationService.instance.initialize(),
+      WidgetService.init(),
     ]);
   } catch (error) {
     debugPrint('Background service initialization error: $error');
