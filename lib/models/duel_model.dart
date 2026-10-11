@@ -102,6 +102,19 @@ class DuelModel {
     'cancelled' => DuelStatus.cancelled,
     _ => DuelStatus.waitingB,
   };
+
+  DuelSubmissionResult toSubmissionResult(String currentUserId) {
+    final isPlayerA = currentUserId == playerAId;
+    return DuelSubmissionResult(
+      duelId: id,
+      score: isPlayerA ? playerAScore : playerBScore,
+      status: status,
+      playerAScore: playerAScore,
+      playerBScore: playerBScore,
+      submittedAsPlayerA: isPlayerA,
+      winnerId: winnerId,
+    );
+  }
 }
 
 class DuelQuestionModel {

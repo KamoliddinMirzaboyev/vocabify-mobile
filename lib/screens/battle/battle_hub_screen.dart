@@ -9,6 +9,7 @@ import '../../providers/decks_provider.dart';
 import '../../providers/duel_provider.dart';
 import '../../repositories/duel_repository.dart';
 import 'word_battle_screen.dart';
+import 'word_battle_result_screen.dart';
 
 class BattleHubScreen extends StatefulWidget {
   const BattleHubScreen({super.key});
@@ -18,7 +19,10 @@ class BattleHubScreen extends StatefulWidget {
 }
 
 class _BattleHubScreenState extends State<BattleHubScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
   late final TabController _tabController;
 
   @override
@@ -41,6 +45,16 @@ class _BattleHubScreenState extends State<BattleHubScreen>
       MaterialPageRoute(builder: (_) => WordBattleScreen(duelId: duel.id)),
     );
     if (mounted) context.read<DuelProvider>().refreshAfterBattle();
+  }
+
+  void _openBattleResult(DuelModel duel, String userId) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => WordBattleResultScreen(
+          result: duel.toSubmissionResult(userId),
+        ),
+      ),
+    );
   }
 
   Future<void> _newBattle() async {
@@ -71,6 +85,7 @@ class _BattleHubScreenState extends State<BattleHubScreen>
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final userId = SupabaseService.currentUser?.id ?? '';
     final provider = context.watch<DuelProvider>();
     final tabs = [
@@ -128,12 +143,14 @@ class _BattleHubScreenState extends State<BattleHubScreen>
                         emptyIcon: Icons.hourglass_empty_rounded,
                         emptyText: 'No battles are waiting for an opponent.',
                         currentUserId: userId,
+                        onTap: (duel) => _openBattleResult(duel, userId),
                       ),
                       _DuelList(
                         duels: tabs[2],
                         emptyIcon: Icons.emoji_events_outlined,
                         emptyText: 'Completed battles will appear here.',
                         currentUserId: userId,
+                        onTap: (duel) => _openBattleResult(duel, userId),
                       ),
                     ],
                   ),
@@ -387,7 +404,8 @@ class _NewBattleSheetState extends State<_NewBattleSheet> {
   Widget build(BuildContext context) {
     final decks = context.watch<DecksProvider>().decks;
     final eligible = decks.where((deck) => deck.cardCount >= 10).toList();
-    _deckId ??= eligible.firstOrNull?.id;
+    final currentDeckId =
+        eligible.any((d) => d.id == _deckId) ? _deckId : eligible.firstOrNull?.id;
 
     return SafeArea(
       child: Padding(
@@ -408,7 +426,7 @@ class _NewBattleSheetState extends State<_NewBattleSheet> {
               ),
               const SizedBox(height: 18),
               DropdownButtonFormField<String>(
-                initialValue: _deckId,
+                initialValue: currentDeckId,
                 decoration: const InputDecoration(
                   labelText: 'Deck',
                   prefixIcon: Icon(Icons.style_rounded),

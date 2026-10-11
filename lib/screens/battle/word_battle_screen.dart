@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../models/duel_model.dart';
@@ -108,6 +109,7 @@ class _WordBattleScreenState extends State<WordBattleScreen> {
     _isAdvancing = true;
     _timer?.cancel();
     _stopwatch.stop();
+    HapticFeedback.lightImpact();
     final elapsed = _stopwatch.elapsedMilliseconds.clamp(
       0,
       _questionDuration.inMilliseconds,

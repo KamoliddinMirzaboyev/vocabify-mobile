@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/constants/app_colors.dart';
@@ -66,6 +67,7 @@ class _StudyScreenState extends State<StudyScreen>
   }
 
   void _handleFlip(StudyProvider study) {
+    HapticFeedback.selectionClick();
     if (study.isFlipped) {
       _flipController.reverse();
     } else {

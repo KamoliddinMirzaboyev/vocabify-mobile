@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/constants/app_colors.dart';
@@ -229,6 +230,7 @@ class _DeckDetailScreenState extends State<DeckDetailScreen> {
               );
             },
             child: CustomScrollView(
+              scrollCacheExtent: const ScrollCacheExtent.pixels(500),
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
                 SliverPadding(
@@ -740,8 +742,10 @@ class _DeckDetailScreenState extends State<DeckDetailScreen> {
   }
 
   Widget _buildCardItem(BuildContext context, CardModel card, bool isDark) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+    return RepaintBoundary(
+      key: ValueKey(card.id),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkCard : Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -792,6 +796,7 @@ class _DeckDetailScreenState extends State<DeckDetailScreen> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }

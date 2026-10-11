@@ -59,6 +59,24 @@ void main() {
       expect(duel.isUsersTurn('available-player'), isTrue);
       expect(duel.isUsersTurn('player-a'), isFalse);
     });
+
+    test('converts a DuelModel into a DuelSubmissionResult for a player', () {
+      final duel = DuelModel.fromJson({
+        ...json,
+        'status': 'completed',
+        'player_b_score': 7900,
+        'winner_id': 'player-a',
+      });
+
+      final resultA = duel.toSubmissionResult('player-a');
+      expect(resultA.score, 8125);
+      expect(resultA.submittedAsPlayerA, isTrue);
+      expect(resultA.winnerId, 'player-a');
+
+      final resultB = duel.toSubmissionResult('player-b');
+      expect(resultB.score, 7900);
+      expect(resultB.submittedAsPlayerA, isFalse);
+    });
   });
 
   test('answer submission clamps client time to the question limit', () {
