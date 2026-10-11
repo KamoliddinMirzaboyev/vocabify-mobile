@@ -11,6 +11,8 @@
 .svn/
 .swiftpm/
 migrate_working_dir/
+.kotlin/
+
 
 # IntelliJ related
 *.iml
@@ -52,6 +54,7 @@ key.properties
 # Widget Preview related
 .widget_preview/
 
-# Android APK binaries
+# Android APK & AppBundle binaries
 *.apk
+*.aab
 
