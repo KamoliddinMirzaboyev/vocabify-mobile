@@ -17,12 +17,14 @@ class StudyScreen extends StatefulWidget {
   final String? deckId;
   final bool startInTypingMode;
   final bool forceAllCards;
+  final List<CardModel>? customCards;
 
   const StudyScreen({
     super.key,
     this.deckId,
     this.startInTypingMode = false,
     this.forceAllCards = false,
+    this.customCards,
   });
 
   @override
@@ -54,6 +56,7 @@ class _StudyScreenState extends State<StudyScreen>
           deckId: widget.deckId,
           startInTypingMode: widget.startInTypingMode,
           forceAllCards: widget.forceAllCards,
+          customCards: widget.customCards,
         );
       }
     });

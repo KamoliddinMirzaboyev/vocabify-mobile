@@ -14,6 +14,7 @@ import '../../widgets/skeleton/app_skeleton.dart';
 import '../study/study_screen.dart';
 import '../quiz/quiz_setup_screen.dart';
 import 'card_form_screen.dart';
+import '../../widgets/custom_study_modal.dart';
 
 class DeckDetailScreen extends StatefulWidget {
   final String deckId;
@@ -204,6 +205,17 @@ class _DeckDetailScreenState extends State<DeckDetailScreen> {
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.tune_rounded),
+            tooltip: 'Moslashuvchan mashq (Random / Oraliq)',
+            onPressed: cards.isNotEmpty
+                ? () => CustomStudyModal.show(
+                      context,
+                      deck: deck,
+                      cards: cards,
+                    )
+                : null,
+          ),
           IconButton(
             icon: const Icon(Icons.file_upload_outlined),
             tooltip: 'JSON import',
@@ -421,6 +433,32 @@ class _DeckDetailScreenState extends State<DeckDetailScreen> {
                               ),
                             ),
                           ],
+                        ),
+                        const SizedBox(height: 10),
+
+                        // 4. Custom Scope Study Button
+                        OutlinedButton.icon(
+                          onPressed: cards.isNotEmpty
+                              ? () => CustomStudyModal.show(
+                                    context,
+                                    deck: deck,
+                                    cards: cards,
+                                  )
+                              : null,
+                          icon: const Icon(Icons.tune_rounded, size: 18),
+                          label: const Text(
+                            'Moslashuvchan mashq (Random / Oraliq)',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            side: BorderSide(
+                              color: (isDark
+                                      ? AppColors.brandDark
+                                      : AppColors.brand)
+                                  .withValues(alpha: 0.5),
+                            ),
+                          ),
                         ),
                         const SizedBox(height: 16),
 

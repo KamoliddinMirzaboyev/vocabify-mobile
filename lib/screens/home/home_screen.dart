@@ -10,6 +10,7 @@ import '../../widgets/skeleton/app_skeleton.dart';
 import '../study/study_screen.dart';
 import '../decks/decks_screen.dart';
 import '../decks/deck_detail_screen.dart';
+import '../../widgets/custom_study_modal.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -335,6 +336,123 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 14),
+
+              // 2.5 Aralash Sinov (Global Random Mix)
+              InkWell(
+                onTap: allCards.isNotEmpty
+                    ? () => CustomStudyModal.show(
+                          context,
+                          cards: allCards,
+                          isGlobal: true,
+                        )
+                    : () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Sinov uchun so\'zlar mavjud emas'),
+                          ),
+                        );
+                      },
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: isDark
+                          ? [
+                              const Color(0xFF1E2D4A),
+                              const Color(0xFF162238),
+                            ]
+                          : [
+                              const Color(0xFF283B60),
+                              const Color(0xFF1E2D4A),
+                            ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.brand.withValues(alpha: 0.25),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        alignment: Alignment.center,
+                        child: const Text('🎲', style: TextStyle(fontSize: 22)),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Row(
+                              children: [
+                                Text(
+                                  'Aralash Sinov',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                SizedBox(width: 6),
+                                Icon(
+                                  Icons.shuffle_rounded,
+                                  color: Colors.white70,
+                                  size: 16,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Barcha to\'plamlardan tasodifiy quiz yoki kartalar',
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.8),
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.18),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.2),
+                          ),
+                        ),
+                        child: Text(
+                          '${allCards.length} so\'z',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
               const SizedBox(height: 16),
 

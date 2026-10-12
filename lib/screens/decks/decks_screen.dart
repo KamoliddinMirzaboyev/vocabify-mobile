@@ -3,9 +3,12 @@ import 'package:provider/provider.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../models/deck_model.dart';
+import '../../models/card_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/decks_provider.dart';
+import '../../providers/cards_provider.dart';
 import '../../widgets/skeleton/app_skeleton.dart';
+import '../../widgets/custom_study_modal.dart';
 import '../bulk_import/bulk_import_screen.dart';
 import 'deck_detail_screen.dart';
 
@@ -268,11 +271,23 @@ class _DecksScreenState extends State<DecksScreen>
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final decksProv = context.watch<DecksProvider>();
     final decks = decksProv.decks;
+    final allCards = context.watch<CardsProvider>().allCards;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('To\'plamlar'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.shuffle_rounded),
+            tooltip: 'Aralash sinov',
+            onPressed: allCards.isNotEmpty
+                ? () => CustomStudyModal.show(
+                      context,
+                      cards: allCards,
+                      isGlobal: true,
+                    )
+                : null,
+          ),
           TextButton.icon(
             onPressed: () {
               Navigator.push(
@@ -351,15 +366,111 @@ class _DecksScreenState extends State<DecksScreen>
               },
               child: ListView.separated(
                 padding: const EdgeInsets.all(16),
-                itemCount: decks.length,
+                itemCount: decks.length + (allCards.isNotEmpty ? 1 : 0),
                 separatorBuilder: (context, index) =>
                     const SizedBox(height: 12),
                 itemBuilder: (context, index) {
+                  if (allCards.isNotEmpty) {
+                    if (index == 0) {
+                      return _buildGlobalMixBanner(context, allCards, isDark);
+                    }
+                    final deck = decks[index - 1];
+                    return _buildDeckCard(context, deck);
+                  }
                   final deck = decks[index];
                   return _buildDeckCard(context, deck);
                 },
               ),
             ),
+    );
+  }
+
+  Widget _buildGlobalMixBanner(
+    BuildContext context,
+    List<CardModel> allCards,
+    bool isDark,
+  ) {
+    return InkWell(
+      onTap: () => CustomStudyModal.show(
+        context,
+        cards: allCards,
+        isGlobal: true,
+      ),
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkCard : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: (isDark ? AppColors.brandDark : AppColors.brand)
+                .withValues(alpha: 0.3),
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: (isDark ? AppColors.brandDark : AppColors.brand)
+                    .withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              alignment: Alignment.center,
+              child: const Text('🎲', style: TextStyle(fontSize: 22)),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Aralash Sinov',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Barcha to\'plamlardan tasodifiy mashq',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark
+                          ? AppColors.darkTextMuted
+                          : AppColors.lightTextMuted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.brandDark : AppColors.brand,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                '${allCards.length} ta',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

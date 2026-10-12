@@ -87,6 +87,7 @@ class StudyProvider extends ChangeNotifier {
     String? deckId,
     bool startInTypingMode = false,
     bool forceAllCards = false,
+    List<CardModel>? customCards,
   }) async {
     _currentIndex = 0;
     _isFlipped = false;
@@ -96,6 +97,13 @@ class StudyProvider extends ChangeNotifier {
     _countGood = 0;
     _countEasy = 0;
     _resetTyping();
+
+    if (customCards != null && customCards.isNotEmpty) {
+      _queue = List<CardModel>.from(customCards);
+      _isLoading = false;
+      notifyListeners();
+      return;
+    }
 
     final today = SrsAlgorithm.todayISO();
     List<CardModel> localCards = [];
